@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package grpc;
+
+service DemoService {
+    rpc GetDemo (GetDemoReq) returns (GetDemoRsp) {}
+    rpc GetDemoWait (GetDemoReq) returns (GetDemoRsp) {}
+    rpc GetDemoStream (GetDemoReq) returns (stream GetDemoRsp) {}
+}
+
+message GetDemoReq {
+    string message = 1;
+}
+
+message GetDemoRsp {
+    int64 code = 1;
+    string message = 2;
+}
