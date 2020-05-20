@@ -12,6 +12,7 @@
   * [读写锁 sync.rwmutex](#读写锁-syncrwmutex)
   * [sync.waitGroup](#syncwaitGroup)
   * [sync.once](#synconce)
+* [内存模型](#内存模型)
 
 
 <!-- markdown-toc end -->
@@ -153,3 +154,29 @@ sync.waitGroup可以等待一组goroutine的返回,一个比较常见的使用�
 
 ### sync.once
 sync.once可以保证在go程序运行期间的某段代码只会执行一次
+
+## 内存模型
+一句话总结:如何保证在一个goroutine中看到在另一个goroutine修改的变量的值  
+如果程序中修改数据时有其他goroutine同时读取，那么必须将读取串行化。为了串行化访问，请使用channel或其他同步原语，例如sync和sync/atomic来保护数据  
+### happens-before
+happens-before是一个术语，并不仅仅是Go语言才有的。简单的说，通常的定义如下：
+假设A和B表示一个多线程的程序执行的两个操作。如果A happens-before B，那么A操作对内存的影响 将对执行B的线程(且执行B之前)可见。
+无论使用哪种编程语言，有一点是相同的：如果操作A和B在相同的线程中执行，并且A操作的声明在B之前，那么A happens-before B    
+
+关于channel的happens-before在Go的内存模型中提到了三种情况：
++ 对一个channel的发送操作 happens-before 相应channel的接收操作完成
++ 关闭一个channel happens-before 从该Channel接收到最后的返回值0
++ 不带缓冲的channel的接收操作 happens-before 相应channel的发送操作完成
+```
+var c = make(chan int, 10)
+var a string
+func f() {
+    a = "hello, world"  // (1)
+    c <- 0  // (2)
+}
+func main() {
+    go f()
+    <-c   // (3)
+    print(a)  // (4)
+}
+```

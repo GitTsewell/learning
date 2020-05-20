@@ -18,6 +18,7 @@
   * [1 联合索引](#1-联合索引)
   * [2 聚簇索引](#2-聚簇索引)
   * [3 覆盖索引](#3-覆盖索引)
+  * [4 索引下推](#4-索引下推)
 * [事务和锁](#事务和锁)
   * [1 事务的特点](#1-事务的特点)
   * [2 隔离级别](#2-隔离级别)
@@ -128,6 +129,27 @@ Innodb使用主键来进行聚簇索引,没有主键的话就会选择一个唯�
 
 ## 3 覆盖索引
 innodb的索引设计模式是聚簇索引,所以我们有时候查找一些数据可以直接在索引层面就能找到,而不用回表,这样极大的减少从磁盘加载数据的数量,大大提高了sql的性能
+
+## 4 索引下推
+索引条件下推优化（Index Condition Pushdown (ICP) ）是MySQL5.6添加的，用于优化数据查询  
++ 不使用索引条件下推优化时存储引擎通过索引检索到数据，然后返回给MySQL服务器，服务器然后判断数据是否符合条件
++ 当使用索引条件下推优化时，如果存在某些被索引的列的判断条件时，MySQL服务器将这一部分判断条件传递给存储引擎，然后由存储引擎通过判断索引是否符合MySQL服务器传递的条件，只有当索引符合条件时才会将数据检索出来返回给MySQL服务器。  
+索引条件下推优化可以减少存储引擎查询基础表的次数，也可以减少MySQL服务器从存储引擎接收数据的次数,icp功能默认开启,可以通过系统变量optimizer_switch 控制开启关闭  
+个人理解:也就是最大程度利用索引中的数据做判断,减少回表的次数,提升效率
+
+## 5 MMR
+MRR全称是Multi-Range Read，是MYSQL5.6优化器的一个新特性，在MariaDB5.5也有这个特性。优化的功能在使用二级索引做范围扫描的过程中减少磁盘随机IO和减少主键索引的访问次数。将随机IO转换为顺序IO  
+在没有MRR的情况下，它是这样得到结果的：  
++ select key_column, pk_column from tb where key_column=x order by key_column ---> 假设这个结果集是t
++ for each row in t ; select non_key_column from tb where pk_column = pk_column_value。(在oracle里第2步叫回表)  
+
+在有MRR的情况下，它是这样执行的：  
++ select key_column, pk_column from tb where key_column = x order by key_column ---> 假设这个结果集是t
++ 将结果集t放在buffer里面(直到buffer满了)，然后对结果集t按照pk_column排序 ---> 假设排序好的结果集是t_sort
++ select non_key_column fromtb where pk_column in (select pk_column from t_sort)  
+
+总结:由于innodb是聚餐索引的结构,从索引指向的是主键id,这时候寻找到的主键id一般是无序的,会造成自盘随机读,只要开启的mmr,可以把结果放到一个buff里面,然后再去统一查找  
+
 
 # 事务和锁
 ## 1 事务的特点
