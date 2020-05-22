@@ -12,7 +12,7 @@ type ConsumerT struct{}
 
 // 主函数
 func main() {
-	var address = "127.0.0.1:32768" //nsqlookupd 地址
+	var address = "127.0.0.1:41610" //nsqlookupd 地址
 	InitConsumer("test", "test-channel", address)
 	for {
 		time.Sleep(time.Second * 10)
@@ -48,7 +48,7 @@ func InitConsumer(topic string, channel string, address string) {
 	// }
 
 	// 建立一个nsqd连接 nsqd地址
-	if err := c.ConnectToNSQD("127.0.0.1:32772"); err != nil {
-		panic(err)
-	}
+	//if err := c.ConnectToNSQD("127.0.0.1:32772"); err != nil {
+	//	panic(err)
+	//}
 }

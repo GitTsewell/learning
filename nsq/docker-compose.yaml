@@ -2,22 +2,47 @@ version: '3'
 services:
   nsqlookupd:
     image: nsqio/nsq
-    command: /nsqlookupd
+# 192.168.3.6 宿主机ip
+    command: /nsqlookupd --broadcast-address=192.168.3.6 --tcp-address=:41600 --http-address=:41610
     ports:
-      - "4160"
-      - "4161"
-  nsqd:
+      - "41600:41600"
+      - "41610:41610"
+  nsqd0:
     image: nsqio/nsq
-    command: /nsqd --lookupd-tcp-address=nsqlookupd:4160
+    command:  /nsqd --lookupd-tcp-address=192.168.3.6:41600 -tcp-address=0.0.0.0:41500 -http-address=0.0.0.0:41510
     depends_on:
       - nsqlookupd
     ports:
-      - "4150"
-      - "4151"
+      - "41500:41500"
+      - "41510:41510"
+  nsqd1:
+    image: nsqio/nsq
+    command:  /nsqd --lookupd-tcp-address=192.168.3.6:41600 -tcp-address=0.0.0.0:41501 -http-address=0.0.0.0:41511
+    depends_on:
+      - nsqlookupd
+    ports:
+      - "41501:41501"
+      - "41511:41511"
+  nsqd2:
+    image: nsqio/nsq
+    command:  /nsqd --lookupd-tcp-address=192.168.3.6:41600 -tcp-address=0.0.0.0:41502 -http-address=0.0.0.0:41512
+    depends_on:
+      - nsqlookupd
+    ports:
+      - "41502:41502"
+      - "41512:41512"
+  nsqd3:
+    image: nsqio/nsq
+    command:  /nsqd --lookupd-tcp-address=192.168.3.6:41600 -tcp-address=0.0.0.0:41503 -http-address=0.0.0.0:41513
+    depends_on:
+      - nsqlookupd
+    ports:
+      - "41503:41503"
+      - "41513:41513"
   nsqadmin:
     image: nsqio/nsq
-    command: /nsqadmin --lookupd-http-address=nsqlookupd:4161
+    command: /nsqadmin --lookupd-http-address=nsqlookupd:41610
     depends_on:
       - nsqlookupd
     ports:
-      - "4171"
+      - "41711:4171"

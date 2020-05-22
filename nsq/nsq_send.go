@@ -13,8 +13,8 @@ var producer *nsq.Producer
 // 主函数
 func main() {
 	// 0.0.0.0:32772->4150/tcp, 0.0.0.0:32771->4151/tcp
-	strIP1 := "127.0.0.1:32772" // nsqd node 1
-	strIP2 := "127.0.0.1:32771" // nsqd node 2
+	strIP1 := "127.0.0.1:41500" // nsqd node 1
+	strIP2 := "127.0.0.1:41501" // nsqd node 2
 	InitProducer(strIP1)
 
 	running := true
