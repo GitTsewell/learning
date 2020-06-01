@@ -37,7 +37,7 @@ func InitConsumer(topic string, channel string, address string) {
 	c.SetLogger(nil, 0)        //屏蔽系统日志
 	c.AddHandler(&ConsumerT{}) // 添加消费者接口
 
-	//建立NSQLookupd连接
+	//建立NSQLookupd连接  todo 如果是用docker部署的  通过nsqluukupd 获得的nsqd的remoteAddress是容器里面的地址而不是对外暴露的,需要处理一下
 	if err := c.ConnectToNSQLookupd(address); err != nil {
 		panic(err)
 	}
@@ -48,7 +48,7 @@ func InitConsumer(topic string, channel string, address string) {
 	// }
 
 	// 建立一个nsqd连接 nsqd地址
-	//if err := c.ConnectToNSQD("127.0.0.1:32772"); err != nil {
-	//	panic(err)
-	//}
+	if err := c.ConnectToNSQD("127.0.0.1:41500"); err != nil {
+		panic(err)
+	}
 }
