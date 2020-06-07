@@ -85,6 +85,25 @@ LABEL com.example.label-with-value="foo"
 LABEL version="1.0"
 ```
 
+### RUN 执行命令
+```
+RUN <command>
+RUN ["executable", "param1", "param2"]
+```
+RUN ["executable", "param1", "param2"] 使用exec执行，这种方式类似于函数调用。指定其他终端可以通过该方式操作，
+例如：RUN ["/bin/bash", "-c", "echo hello"] ，该方式必须使用双引号[“]而不能使用单引号[‘]，因为该方式会被转换成一个JSON 数组
+
+### VOLUME 指定挂载点
+该指令使容器中的一个目录具有持久化存储的功能，该目录可被容器本身使用，也可共享给其他容器。当容器中的应用有持久化数据的需求时可以在Dockerfile中使用该指令
+```
+VOLUME ["/data"]
+```
+
+### WORKDIR 指定工作目录
+```
+ORKDIR /path/to/workdir
+```
+切换目录指令，类似于cd命令，写在该指令后的RUN，CMD以及ENTRYPOINT指令都将该目录作为当前目录，并执行相应的命令
 
 
 
