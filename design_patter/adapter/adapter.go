@@ -30,7 +30,7 @@ type adapter struct {
 	voice
 }
 
-func NewAdapter(adaptee voice) voice {
+func NewAdapter(adaptee voice) mv {
 	return &adapter{voice: adaptee}
 }
 
