@@ -5,3 +5,4 @@
 + [浮点数的加法运算](https://blog.csdn.net/m0_37972557/article/details/84594879)
 + [IEEE 754单精度在线计算](http://www.styb.cn/cms/ieee_754.php)
 + [在线进度转换](https://tool.lu/hexconvert/)
++ [解决float精度的方案](https://draveness.me/whys-the-design-decimal-and-rational/)
