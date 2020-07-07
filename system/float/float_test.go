@@ -6,7 +6,7 @@ import (
 )
 
 func TestConvertToBin(t *testing.T) {
-	t.Log(ConvertToBin(127))
+	t.Log(ConvertToBin(129))
 }
 
 func TestAddBinary(t *testing.T) {
@@ -15,12 +15,11 @@ func TestAddBinary(t *testing.T) {
 }
 
 func TestFloat32ToBitString(t *testing.T) {
-	t.Log(Float32ToBitString(0.1))
-	t.Log(Float32ToBitString(0.2))
+	t.Log(Float32ToBitString(6.125))
 }
 
 func TestBitStringToFloat32(t *testing.T) {
-	t.Log(BitStringToFloat32("00111110100110011001100110011010"))
+	t.Log(BitStringToFloat32("01000000110100000000000000000000"))
 }
 
 func TestFloat64ToBitString(t *testing.T) {
