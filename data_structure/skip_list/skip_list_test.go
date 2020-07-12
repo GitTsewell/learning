@@ -6,17 +6,13 @@ import (
 	"testing"
 )
 
-func TestNewNode(t *testing.T) {
-	list := NewSkipList()
-	for i := 0; i < 20; i++ {
-		list.Insert(rand.Intn(100))
+func TestSkiplist_Add(t *testing.T) {
+	skip := Constructor()
+	skip.Add(3901)
+	for i := 0; i < 10; i++ {
+		skip.Add(rand.Intn(20000))
 	}
-	list.Print()
-
-	fmt.Println("\n--------------------------------------")
-
-	list.Delete(10)
-	list.Print()
-
-	fmt.Println("\n--------------------------------------")
+	fmt.Println(skip.Search(3901))
+	fmt.Println(skip.Erase(3901))
+	fmt.Println(skip)
 }
