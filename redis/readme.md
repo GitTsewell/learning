@@ -10,6 +10,10 @@
 * [Pipeline有什么好处，为什么要用pipeline](#Pipeline有什么好处为什么要用pipeline)
 * [Redis雪崩、穿透和击穿](#Redis雪崩穿透和击穿)
 
+
+## 好文链接
++ [阿里官方redis开发规范](https://xie.infoq.cn/article/0ca2a460a49329fd4d2a0d1c1)
+
 <!-- markdown-toc end -->
 
 # 数据结构
