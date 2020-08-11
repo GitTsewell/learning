@@ -7,3 +7,6 @@ func BenchmarkFib(b *testing.B) {
 		Fib(20) // 运行 Fib 函数 N 次
 	}
 }
+
+// go test -bench BenchmarkRequest -run=none
+// -benchtime=3s
