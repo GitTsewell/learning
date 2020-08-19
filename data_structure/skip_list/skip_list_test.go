@@ -1,15 +1,14 @@
 package skip_list
 
 import (
-	"fmt"
-	"math/rand"
 	"testing"
 )
 
-func TestSkiplist_Add(t *testing.T) {
+func TestSkipList_Add(t *testing.T) {
 	skip := Constructor()
-	for i := 0; i < 10000000; i++ {
-		skip.Add(rand.Intn(100000000))
+	for i := 0; i < 10000; i++ {
+		skip.Add(i + 1)
 	}
-	fmt.Println(skip)
+
+	t.Log(skip.Search(6200))
 }

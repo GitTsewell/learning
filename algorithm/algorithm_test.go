@@ -25,10 +25,8 @@ func makeRandArr() []int {
 // 冒泡
 func TestMaopao(t *testing.T) {
 	buf := makeRandArr()
-	ti := time.Now()
 	maopao(buf)
-	fmt.Println(buf)
-	fmt.Println(time.Since(ti))
+	t.Log(buf)
 }
 
 // 选择

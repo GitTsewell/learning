@@ -1,7 +1,6 @@
 package reverse_list
 
 import (
-	"fmt"
 	"testing"
 )
 
@@ -17,5 +16,5 @@ func MakeList(val int) *ListNode {
 func TestReverseList(t *testing.T) {
 	list := MakeList(10)
 	reverse := ReverseList(list)
-	fmt.Println(reverse)
+	t.Log(reverse)
 }

@@ -8,5 +8,5 @@ func BenchmarkFib(b *testing.B) {
 	}
 }
 
-// go test -bench BenchmarkRequest -run=none
+// go test -bench BenchmarkRequest(函数名) -run=none
 // -benchtime=3s
