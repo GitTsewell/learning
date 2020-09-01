@@ -7,7 +7,6 @@ import (
 
 func TestSkipList_Add(t *testing.T) {
 	skip := Constructor()
-	skip.Add(6200)
 	for i := 0; i < 10000; i++ {
 		skip.Add(i + 1)
 	}
