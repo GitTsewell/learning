@@ -14,6 +14,7 @@ require (
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/gorilla/schema v1.1.0 // indirect
 	github.com/imroc/biu v0.0.0-20170329141542-0376ce6761c0
+	github.com/influxdata/influxdb1-client v0.0.0-20200827194710-b269163b24ab
 	github.com/iris-contrib/formBinder v5.0.0+incompatible // indirect
 	github.com/json-iterator/go v1.1.10 // indirect
 	github.com/kardianos/govendor v1.0.9 // indirect
