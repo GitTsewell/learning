@@ -5,6 +5,7 @@ import (
 	"testing"
 )
 
+// 二维切片的内存地址
 func TestMulArray(t *testing.T) {
 	type arr [3]int
 	var array [3]arr
