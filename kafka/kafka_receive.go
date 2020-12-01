@@ -12,6 +12,7 @@ var (
 )
 
 func main() {
+	//consumer, err := sarama.NewConsumer([]string{"192.168.3.6:9092"}, nil)
 	consumer, err := sarama.NewConsumer([]string{"192.168.3.6:9092"}, nil)
 
 	if err != nil {
