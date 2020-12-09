@@ -35,7 +35,7 @@ func main() {
 func deferFunc1(i int) (t int) {
 	t = i
 	defer func() {
-		x += 3
+		t += 3
 	}()
 
 	return
@@ -44,7 +44,7 @@ func deferFunc1(i int) (t int) {
 func deferFunc2(i int) int {
 	t = i
 	defer func() {
-		x += 3
+		t += 3
 	}()
 
 	return t
@@ -52,7 +52,7 @@ func deferFunc2(i int) int {
 
 func deferFunc1(i int) (t int) {
 	defer func() {
-		x += i
+		t += i
 	}()
 
 	return 2
