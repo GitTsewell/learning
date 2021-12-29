@@ -1,0 +1,1023 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CatsLuck</title>
+    <link rel="icon" href="/img/clk.png">
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.0/themes/base/jquery-ui.css">
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+        }
+        .no-close .ui-dialog-titlebar-close {
+            display: none;
+        }
+        tr {
+            border-bottom: 1px solid black;
+        }
+        td {
+            text-align: right;
+            font-family: 'Courier Prime';
+        }
+        .neonText {
+            color: gold;
+            text-shadow:
+                    0 0 3px yellow,
+                    0 0 5px lightyellow;
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.js" integrity="sha384-S58meLBGKxIiQmJ/pJ8ilvFUcGcqgla+mWH9EEKGm6i6rKxSTA2kpXJQJ8n7XK4w" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/ui/1.13.0/jquery-ui.js" integrity="sha384-cBRE6iZwT9o/buXdjHQ/TMfB7uovhk0R+i+mvd4V5Megxs9NuMohD10dapiJLXzK" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.5.1/dist/ethers.umd.min.js" integrity="sha384-TOrQOibRJLhwxzAdxn9pLj7Kx8mTIBrNfq6jSOiHrB519TUbe3z/d79TTvE0Pv6d" crossorigin="anonymous"></script>
+    <script>
+
+        function detectEthereumProvider({ mustBeMetaMask = false, silent = false, timeout = 3000, } = {}) {
+            _validateInputs();
+            let handled = false;
+            return new Promise((resolve) => {
+                if (window.ethereum) {
+                    handleEthereum();
+                }
+                else {
+                    window.addEventListener('ethereum#initialized', handleEthereum, { once: true });
+                    setTimeout(() => {
+                        handleEthereum();
+                    }, timeout);
+                }
+                function handleEthereum() {
+                    if (handled) {
+                        return;
+                    }
+                    handled = true;
+                    window.removeEventListener('ethereum#initialized', handleEthereum);
+                    const { ethereum } = window;
+                    if (ethereum && (!mustBeMetaMask || ethereum.isMetaMask)) {
+                        resolve(ethereum);
+                    }
+                    else {
+                        const message = mustBeMetaMask && ethereum
+                            ? 'Non-MetaMask window.ethereum detected.'
+                            : 'Unable to detect window.ethereum.';
+                        !silent && console.error('@metamask/detect-provider:', message);
+                        resolve(null);
+                    }
+                }
+            });
+            function _validateInputs() {
+                if (typeof mustBeMetaMask !== 'boolean') {
+                    throw new Error(`@metamask/detect-provider: Expected option 'mustBeMetaMask' to be a boolean.`);
+                }
+                if (typeof silent !== 'boolean') {
+                    throw new Error(`@metamask/detect-provider: Expected option 'silent' to be a boolean.`);
+                }
+                if (typeof timeout !== 'number') {
+                    throw new Error(`@metamask/detect-provider: Expected option 'timeout' to be a number.`);
+                }
+            }
+        }
+
+        async function connectWeb3() {
+            if (typeof window.ethereum === 'undefined') {
+                if (typeof window.web3 !== 'undefined') {
+                    window.ethereum = window.web3;
+                } else if (typeof window.TPJSBrigeClient !== 'undefined') {
+                    window.ethereum = window.TPJSBrigeClient;
+                } else if (typeof window.imToken !== 'undefined') {
+                    window.ethereum = window.imToken;
+                } else {
+                    const provider = await detectEthereumProvider();
+                    if (provider) {
+                        window.ethereum = provider;
+                    } else if(IsPC()) {
+                        alert("Your browser has not installed a wallet extension (like MetaMask).")
+                    } else {
+                        alert("Please open this page inside a mobile wallet App.")
+                    }
+                }
+            }
+            window.accounts = await window.ethereum.request({method: 'eth_requestAccounts'});
+            if (window.accounts.length == 0) {
+                alert("Cannot connect to wallet.")
+                return false;
+            }
+            const chainId = await window.ethereum.request({method: 'eth_chainId'})
+            if(chainId != SmartBCHChainId) {
+                alert("You are not in smartBCH network.")
+                return
+            }
+            return true;
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function formatTimeAsUTC(timestamp) {
+            var date = new Date()
+            date.setTime(timestamp)
+            return date.toUTCString()
+        }
+
+        function formatTime(timestamp) {
+            var date = new Date()
+            date.setTime(timestamp)
+            return date.toLocaleString('en-US', {
+                month: 'numeric',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: 'numeric',
+                hour12: false,
+            }).replace("24:", "00:")
+        }
+
+        function escapeHTML(s) {
+            return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        }
+
+        function hasOnlyASCII(str){
+            if(typeof(str)!=='string'){
+                return false;
+            }
+            for(var i=0;i<str.length;i++){
+                if(str.charCodeAt(i)>127){
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        function goHome() {
+            window.location.href="/"; return false;
+        }
+    </script>
+    <script>
+        const DefaultGasPrice = ethers.BigNumber.from("0x3e63fa64")
+        const AllOnes = ethers.BigNumber.from("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
+        const cashcatsAddress = "0x265bD28d79400D55a1665707Fa14A72978FA6043"
+        const clkAddress = "0x659F04F36e90143fCaC202D4BC36C699C078fC98"
+        const commentAddress = "0x712886a17fD38C75Fb8f5c22DE392aEaFa52a729"
+        const CoinDecimal = 2
+        const DisplayDigits = 2
+        const ShareDecimal = 8
+        const SmartBCHChainId = 10000
+        const DefaultStartHeight = 1800000;
+
+        const Buy = ethers.utils.id("Buy(address,uint256)")
+        const Win = ethers.utils.id("Win(address,uint256)")
+        const Deposit = ethers.utils.id("Deposit(address,uint256)")
+        const Withdraw = ethers.utils.id("Withdraw(address,uint256)")
+        const Transfer = ethers.utils.id("Transfer(address,address,uint256)")
+
+        const ABI = [
+            "function depositCATS(uint amount, uint lockUntil) public",
+            "function withdrawCATS(uint amount) external",
+            "function buyLottery(uint amount, uint multiplierX100) external",
+            "function getMyReward() external returns (uint)",
+            "function buyback() external returns (uint)",
+        ]
+
+        const RouterABI = [
+            "function swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline) external view returns (uint[] memory amounts)",
+        ]
+
+        const ReadonlyABI = [
+            "function info(address addr) external view returns (uint, uint, uint)",
+            "function getMyReward() external view returns (uint)",
+            "function getBlockHash(uint height) public view returns (bytes32)",
+            "function isLucky(uint multiplierX100, uint rand) public pure returns (bool)",
+            "function EndMintingTime() external view returns (uint)",
+            "function buybackPoolTokenCount() external view returns (uint)",
+            "function totalSupply() external view returns (uint)",
+            "function balanceOf(address account) external view returns (uint256)",
+            "function buyback() external view returns (uint)",
+        ]
+
+        const Erc20ABI = [
+            "function approve(address spender, uint256 amount) external returns (bool)",
+            "function balanceOf(address account) external view returns (uint256)",
+            "function allowance(address owner, address spender) external view returns (uint256)"
+        ]
+
+        const CommentABI = [
+            "function comment1(uint w1) external",
+            "function comment2(uint w1, uint w2) external",
+            "function comment3(uint w1, uint w2, uint w3) external",
+            "function comment4(uint w1, uint w2, uint w3, uint w4) external",
+            "function comment5(uint w1, uint w2, uint w3, uint w4, uint w5) external",
+            "function comment6(uint w1, uint w2, uint w3, uint w4, uint w5, uint w6) external",
+            "function comment7(uint w1, uint w2, uint w3, uint w4, uint w5, uint w6, uint w7) external",
+            "function comment8(uint w1, uint w2, uint w3, uint w4, uint w5, uint w6, uint w7, uint w8) external",
+            "function comment9(uint w1, uint w2, uint w3, uint w4, uint w5, uint w6, uint w7, uint w8, uint w9) external",
+        ]
+
+        class CatsLuck {
+            constructor() {
+                this.totalShare = 0
+                this.totalCoins = 0
+                this.userShare = 0
+                this.userCoins = 0
+                this.totalBought = 0
+                this.totalWon = 0
+            }
+            async syncValues(autoFillAmount) {
+                var multiplier = $("#multiplier").val()*1.0
+                var amount = $("#amount").val()
+                $("#mulValue").text(multiplier)
+                var maxAmount = Math.floor(this.totalCoins*0.99/multiplier)/100.0
+                $("#maxAmount").text(maxAmount)
+                $("#amountWarn").text("")
+                if(amount > maxAmount) {
+                    if(autoFillAmount) {
+                        amount = maxAmount
+                        $("#amount").val(maxAmount)
+                    } else {
+                        $("#amountWarn").text(`> ${maxAmount}`)
+                    }
+                }
+                if(amount < 0.1) {
+                    $("#amountWarn").text(`< 0.1`)
+                }
+                $("#syncAmount").text(amount)
+                var chance = 100.0/multiplier
+                if(chance < 1) {
+                    chance = chance.toFixed(4)
+                } else if(chance < 10) {
+                    chance = chance.toFixed(3)
+                } else {
+                    chance = chance.toFixed(2)
+                }
+                $("#chance").text(chance)
+                var feeAmount = amount*0.02
+                if(feeAmount<0.02) feeAmount = 0.02
+                $("#feeAmount").text(feeAmount.toFixed(2))
+                var rewardAmount = (amount-feeAmount)*multiplier
+                $("#rewardAmount").text(rewardAmount.toFixed(2))
+
+                const provider = new ethers.providers.Web3Provider(window.ethereum)
+                const roContract = new ethers.Contract(clkAddress, ReadonlyABI, provider)
+
+                var totalBurnt = await roContract.balanceOf("0x0000000000000000000000000000000000000001")
+                totalBurnt = ethers.utils.formatUnits(totalBurnt)*1.0
+                $("#totalBurnt").text(totalBurnt.toFixed(4))
+
+                var clkSupply = await roContract.totalSupply()
+                clkSupply = ethers.utils.formatUnits(clkSupply)*1.0
+                $("#clkSupply").text(clkSupply.toFixed(4))
+
+                var buybackPoolTokenCount = await roContract.buybackPoolTokenCount()
+                $("#buybackPoolTokenCount").text(ethers.utils.formatUnits(buybackPoolTokenCount, CoinDecimal))
+
+                var mintEndTime = await roContract.EndMintingTime()
+                mintEndTime = mintEndTime.toNumber() * 1000
+                $("#mintEndTime").text(formatTimeAsUTC(mintEndTime))
+                if(Date.now() < mintEndTime) {
+                    $("#clkMintHint").show()
+                } else {
+                    $("#clkMintHint").hide()
+                }
+
+                try {
+                    var CLKcanBeBought = 0
+                    if(!buybackPoolTokenCount.isZero()) {
+                        var CLKcanBeBought = await roContract.buyback()
+                        CLKcanBeBought = ethers.utils.formatUnits(CLKcanBeBought)*1.0
+                    }
+                    $("#CLKcanBeBought").text(CLKcanBeBought.toFixed(4))
+                } catch(e) {
+                    //console.log(e)
+                    $("#CLKcanBeBought").text("0")
+                }
+            }
+
+            async getInfo(catsluckContract, addr) {
+                try {
+                    var [totalCoins, totalShare, userShareAndLockUntil] = await catsluckContract.info(addr)
+                } catch(e) {
+                    $("#warnText").text(`Cannot connect to RPC-Server!`)
+                    $("#warnDlg").dialog({modal: true, buttons: {Ok: function(){
+                                $(this).dialog("close")
+                            }}})
+                }
+                var userShare = userShareAndLockUntil.div(ethers.BigNumber.from(2).pow(64))
+                this.totalCoins = ethers.utils.formatUnits(totalCoins, CoinDecimal)*1.0
+                this.totalShare = ethers.utils.formatUnits(totalShare, ShareDecimal)*1.0
+                this.userShare = ethers.utils.formatUnits(userShare, ShareDecimal)*1.0
+                this.userCoins = this.totalCoins*this.userShare/this.totalShare
+                var catsPerShare = this.totalCoins/this.totalShare
+                $("#totalCoins").text(this.totalCoins)
+                $("#totalShare").text(this.totalShare)
+                $("#userCoins").text(this.userCoins.toFixed(DisplayDigits))
+                $("#userShare").text(this.userShare)
+                $("#catsPerShare").text(catsPerShare.toFixed(DisplayDigits))
+            }
+
+            async receivePendingReward() {
+                const provider = new ethers.providers.Web3Provider(window.ethereum)
+                const signer = provider.getSigner()
+                const catsluckContract = new ethers.Contract(clkAddress, ABI, provider).connect(signer)
+                await catsluckContract.getMyReward({gasPrice: DefaultGasPrice})
+            }
+
+            async watchCLK() {
+                const ok = await ethereum.request({method: "wallet_watchAsset", params: {
+                        type: "ERC20",
+                        options: {
+                            address: clkAddress,
+                            symbol: "CLK",
+                            decimals: 18,
+                            image: "https://catsluck.com/img/clk.png",
+                        },
+                    }})
+
+                if(!ok) {
+                    alert("Failed to make your wallet watch CLK.")
+                }
+            }
+
+            async init() {
+                if(!connectWeb3()) return
+                const provider = new ethers.providers.Web3Provider(window.ethereum)
+                const signer = provider.getSigner()
+                const signerAddr = await signer.getAddress()
+                $("#signerAddr").text(signerAddr)
+                const roContract = new ethers.Contract(clkAddress, ReadonlyABI, provider).connect(signer)
+                await this.getInfo(roContract, signerAddr)
+                await this.syncValues(true)
+                window.setInterval(async function() {await window.catsLuck.syncValues(false);}, 10000)
+
+                var clkLink = $("#clkLink")
+                clkLink.prop("href", "https://smartscan.cash/address/"+clkAddress)
+
+                var name = localStorage.getItem("NickName")
+                if(name) {
+                    $("#nickName").val(name)
+                } else {
+                    $("#nickName").prop("placeholder", "luckycat(ID:"+ethers.BigNumber.from(signerAddr.substr(0, 8)).toNumber()+")")
+                }
+
+                var reward  = await roContract.getMyReward()
+                this.showAndUpdateHistoryTable()
+                this.showCommentsAndUpdate()
+                for(var i=0; i<30 && reward.eq(AllOnes); i++) { // wait until the block hash is available
+                    await sleep(2000)
+                    reward = await roContract.getMyReward()
+                }
+                if(!reward.isZero() && !reward.eq(AllOnes)) {
+                    $("#pendingRewardAmount").text(ethers.utils.formatUnits(reward, CoinDecimal))
+                    $("#pendingRewardDlg").dialog({modal: true, dialogClass: "no-close", buttons: {Ok: function() {
+                                window.catsLuck.receivePendingReward();
+                                $(this).dialog("close")
+                            }}});
+                }
+            }
+
+            async approveCATS() {
+                const provider = new ethers.providers.Web3Provider(window.ethereum)
+                const signer = provider.getSigner()
+                const tokenContract = new ethers.Contract(cashcatsAddress, Erc20ABI, provider).connect(signer)
+                await tokenContract.approve(clkAddress, ethers.utils.parseUnits("10000"))
+            }
+
+            async buy() {
+                const provider = new ethers.providers.Web3Provider(window.ethereum)
+                const signer = provider.getSigner()
+                const tokenContract = new ethers.Contract(cashcatsAddress, Erc20ABI, provider).connect(signer)
+                const amount = $("#amount").val()*1.0
+                const maxAmount = $("#maxAmount").text()*1.0
+                console.log("maxAmount", maxAmount)
+                if(amount > maxAmount) {
+                    $("#warnText").text(`The amount ${amount} is larger than the maximum amount you can buy (${maxAmount})!`)
+                    $("#warnDlg").dialog({modal: true, buttons: {Ok: function(){
+                                $(this).dialog("close")
+                            }}})
+                    return
+                }
+                if(amount < 0.1) {
+                    $("#warnText").text(`The amount ${amount} is less than the minimum amount 0.1!`)
+                    $("#warnDlg").dialog({modal: true, buttons: {Ok: function(){
+                                $(this).dialog("close")
+                            }}})
+                    return
+                }
+                const signerAddr = await signer.getAddress()
+                const balanceBN = await tokenContract.balanceOf(signerAddr)
+                const balance = ethers.utils.formatUnits(balanceBN, CoinDecimal)*1.0
+                if(balance < amount) {
+                    $("#warnText").text(`You balance (${balance}) is less than the amount (${amount}) you want to pay!`)
+                    $("#warnDlg").dialog({modal: true, buttons: {Ok: function(){
+                                $(this).dialog("close")
+                            }}})
+                    return
+                }
+                const allowanceBN = await tokenContract.allowance(signerAddr, clkAddress)
+                const allowance = ethers.utils.formatUnits(allowanceBN, CoinDecimal)*1.0
+                if(allowance < amount) {
+                    $("#warnText").text("You have not approved enough allowance to this lottery contract. Please appove and retry buying.")
+                    $("#warnDlg").dialog({modal: true, buttons: {Ok: function() {
+                                window.catsLuck.approveCATS()
+                                $(this).dialog("close")
+                            }}})
+                    return
+                }
+                const catsluckContract = new ethers.Contract(clkAddress, ABI, provider).connect(signer)
+                const amountBN = ethers.utils.parseUnits(amount.toFixed(CoinDecimal), CoinDecimal)
+                const multiplierX100 = ($("#multiplier").val()*100).toFixed(0)
+                if(multiplierX100 < 105 || multiplierX100 > 100000) {
+                    $("#warnText").text("The multiplier is invalid. It must be within the range [1.05, 1000].")
+                    $("#warnDlg").dialog({modal: true, buttons: {Ok: function() {
+                                $(this).dialog("close")
+                            }}})
+                    return
+                }
+                const tx = await catsluckContract.buyLottery(amountBN, multiplierX100, {gasPrice: DefaultGasPrice})
+                $("#waitDlg").dialog({
+                    modal: true,
+                    dialogClass: "no-close",
+                    open: function(event, ui) {
+                        $(".ui-dialog-titlebar-close", ui.dialog || ui).hide();
+                    }
+                })
+                await tx.wait()
+                const roContract = new ethers.Contract(clkAddress, ReadonlyABI, provider).connect(signer)
+                var reward = await roContract.getMyReward()
+                while(reward.eq(AllOnes)) { // wait until the block hash is available
+                    await sleep(2000)
+                    reward = await roContract.getMyReward()
+                }
+                $("#waitDlg").dialog("close")
+                if(reward.isZero()) {
+                    $("#noRewardDlg").dialog({modal: true, buttons: {Ok: function(){
+                                $(this).dialog("close")
+                            }}})
+                    return
+                }
+                $("#yesRewardDlg").dialog({modal: true, dialogClass: "no-close", buttons: {Ok: function() {
+                            window.catsLuck.receivePendingReward()
+                            $(this).dialog("close")
+                        }}})
+                return
+            }
+
+            async depositCATS() {
+                const provider = new ethers.providers.Web3Provider(window.ethereum)
+                const signer = provider.getSigner()
+                const tokenContract = new ethers.Contract(cashcatsAddress, Erc20ABI, provider).connect(signer)
+                const depositAmount = $("#depositAmount").val()*1.0
+                const signerAddr = await signer.getAddress()
+                const balanceBN = await tokenContract.balanceOf(signerAddr)
+                const balance = ethers.utils.formatUnits(balanceBN, CoinDecimal)*1.0
+                console.log("balance", balance)
+                if(balance < depositAmount) {
+                    $("#warnText").text(`You balance (${balance}) is less than the amount (${depositAmount}) you want to deposit!`)
+                    $("#warnDlg").dialog({modal: true, buttons: {Ok: function(){
+                                $(this).dialog("close")
+                            }}})
+                    return
+                }
+                const allowanceBN = await tokenContract.allowance(signerAddr, clkAddress)
+                const allowance = ethers.utils.formatUnits(allowanceBN, CoinDecimal)*1.0
+                console.log("allowance", allowance)
+                if(allowance < depositAmount) {
+                    $("#warnText").text("You have not approved enough allowance to this lottery contract. Please appove and retry to deposit.")
+                    $("#warnDlg").dialog({modal: true, buttons: {Ok: function() {
+                                window.catsLuck.approveCATS()
+                                $(this).dialog("close")
+                            }}})
+                    return
+                }
+                const catsluckContract = new ethers.Contract(clkAddress, ABI, provider).connect(signer)
+                const depositAmountBN = ethers.utils.parseUnits(depositAmount.toFixed(CoinDecimal), CoinDecimal)
+                await catsluckContract.depositCATS(depositAmountBN, 0, {gasPrice: DefaultGasPrice})
+            }
+
+            async buybackAndBurn() {
+                const provider = new ethers.providers.Web3Provider(window.ethereum)
+                const signer = provider.getSigner()
+                const catsluckContract = new ethers.Contract(clkAddress, ABI, provider).connect(signer)
+                await catsluckContract.buyback({gasPrice: DefaultGasPrice})
+                return false;
+            }
+
+            async withdrawCATS() {
+                const provider = new ethers.providers.Web3Provider(window.ethereum)
+                const signer = provider.getSigner()
+                const catsluckContract = new ethers.Contract(clkAddress, ABI, provider).connect(signer)
+                const withdrawAmount = $("#withdrawAmount").val()*1.0
+                if(this.userCoins*1.05 < withdrawAmount) { // withdrawAmount is too big
+                    $("#warnText").text(`The value you want withdraw (${withdrawAmount}) is larger than the maximum possible value (${this.userCoins}).`)
+                    $("#warnDlg").dialog({modal: true, buttons: {Ok: function(){
+                                $(this).dialog("close")
+                            }}})
+                    return
+                }
+                var withdrawShare = this.userShare
+                if($("#userCoins").text()*1.0 != withdrawShare && this.userCoins > withdrawAmount) {
+                    withdrawShare = this.userShare * withdrawAmount / this.userCoins
+                }
+                const withdrawShareBN = ethers.utils.parseUnits(withdrawShare.toFixed(ShareDecimal), ShareDecimal)
+                await catsluckContract.withdrawCATS(withdrawShareBN, {gasPrice: DefaultGasPrice})
+            }
+
+            async showMyHistory() {
+                const provider = new ethers.providers.Web3Provider(window.ethereum)
+                const signer = provider.getSigner()
+                const signerAddr32 = ethers.utils.hexZeroPad(await signer.getAddress(), 32)
+                var filter = {address: clkAddress, topics: [[Deposit, Withdraw], signerAddr32]}
+                var toHeight = await provider.getBlockNumber()
+                var logs = await this.getLogs(DefaultStartHeight, toHeight, provider, filter, 200)
+                this.showPoolOperations(logs)
+            }
+
+            async showComments(startHeight, toHeight, provider) {
+                var filter = {address: commentAddress}
+                var logs = await this.getLogs(startHeight, toHeight, provider, filter, 200)
+                let utf8decoder = new TextDecoder()
+                var commentList = $("#commentList")
+                for(var i=0; i<logs.length && i<window.recCountLimit; i++) {
+                    const data = ethers.utils.arrayify(logs[i].data)
+                    const txt = utf8decoder.decode(data)
+                    var n = txt.indexOf("\n")
+                    const content = escapeHTML(txt.slice(n+1))
+                    const timeAndSender = txt.slice(0, n)
+                    n = timeAndSender.indexOf(" ")
+                    const timestamp = timeAndSender.slice(0, n)
+                    const sender = timeAndSender.substr(n+1)
+                    const t = formatTime(1000*timestamp)
+                    commentList.prepend(`<p>${t} <b>${sender}:</b><span style="white-space: pre-line">${content}</span></p>`)
+                }
+            }
+
+            async showCommentsAndUpdate() {
+                const provider = new ethers.providers.Web3Provider(window.ethereum)
+                window.latestHeight4Comment = await provider.getBlockNumber()
+                await this.showComments(1950000, window.latestHeight4Comment, provider)
+                window.tableUpdateInterval = setInterval(async function() {
+                    var newHeight = await provider.getBlockNumber()
+                    console.log("ii", window.latestHeight4Comment+1, newHeight)
+                    if(window.latestHeight4Comment+1 <= newHeight) {
+                        await window.catsLuck.showComments(window.latestHeight4Comment+1, newHeight, provider)
+                    }
+                    window.latestHeight4Comment = newHeight
+                }, 10000)
+            }
+
+            async showBuybackHistory() {
+                const provider = new ethers.providers.Web3Provider(window.ethereum)
+                var filter = {address: clkAddress, topics: [Transfer,
+                        "0x0000000000000000000000009ffc24c4e0123015841a14e95882d4739bbf7cb0",
+                        "0x0000000000000000000000000000000000000000000000000000000000000001"]}
+                var toHeight = await provider.getBlockNumber()
+                $("#buybackHisDlgLoading").show()
+                $("#buybackHisDlg").dialog({modal: true, buttons: {Ok: function(){
+                            $(this).dialog("close")
+                        }}})
+                var logs = await this.getLogs(DefaultStartHeight, toHeight, provider, filter, 200)
+                $("#buybackHisDlgLoading").hide()
+                var tbl = $("#buybackTbl")
+                tbl.html(`<tr><th>Block</th><th>BuyBack Amount</th></tr>`)
+                var end = Math.max(logs.length-200, 0)
+                for(var i=logs.length-1; i>=end; i--) {
+                    var log = logs[i]
+                    var amt = ethers.utils.formatUnits(log.data)*1.0
+                    amt = amt.toFixed(4)
+                    tbl.append(`<tr><td><code>${log.blockNumber}</code></td><td><code>${amt}</code></td></tr>`)
+                }
+                return false;
+            }
+
+            async getLogs(startHeight, toHeight, provider, filter, countLimit) {
+                var allLogs = []
+                while(toHeight > startHeight) {
+                    filter.fromBlock = Math.max(toHeight-10000+1, startHeight)
+                    filter.toBlock = toHeight
+                    var logs = await provider.getLogs(filter)
+                    //console.log("aaa ", filter.fromBlock, filter.toBlock, logs.length)
+                    for(var i=logs.length-1; i>=0; i--) {
+                        //console.log("bnumber ", logs[i].blockNumber)
+                        allLogs.unshift(logs[i])
+                    }
+                    if(allLogs.length > countLimit) {
+                        break
+                    }
+                    toHeight -= 10000
+                }
+                return allLogs
+            }
+
+            showPoolOperations(logs) {
+                var poolTable = $("#poolTable")
+                poolTable.show()
+                poolTable.html(`<tr><th>Time</th><th>$CATS</th><th>txid</th></tr>`)
+                var totalInvest = 0
+                for(var i=0; i<logs.length; i++) {
+                    var log = logs[i]
+                    const timestamp = ethers.BigNumber.from("0x"+log.data.substr(2+24+24))
+                    const timeStr = formatTime(1000*timestamp.toNumber())
+                    if(log.topics[0] == Deposit || log.topics[0] == Withdraw) {
+                        var html = `<tr><td>${timeStr}</td>`
+                        const amountBN = ethers.BigNumber.from(log.data.substr(0, 2+24))
+                        const amount  = ethers.utils.formatUnits(amountBN, CoinDecimal)
+                        const shareBN = ethers.BigNumber.from("0x"+log.data.substr(2+24, 24))
+                        const share  = ethers.utils.formatUnits(shareBN, ShareDecimal)
+                        if(log.topics[0] == Deposit) {
+                            html += `<td style="color: blue">+${amount}</td>`
+                            totalInvest += amount*1.0
+                        } else if(log.topics[0] == Withdraw) {
+                            html += `<td style="color: purple">-${amount}</td>`
+                            totalInvest -= amount*1.0
+                        }
+                        html += `<td>&nbsp;<a target="_blank" href="https://smartscan.cash/transaction/${log.transactionHash}">view</a></td></tr>`
+                        poolTable.append(html)
+                    }
+                }
+                var totalEarning = this.userCoins - totalInvest
+                $("#totalEarning").text(totalEarning.toFixed(DisplayDigits))
+                $("#totalEarningP").show()
+            }
+
+            async showHistoryTable(startHeight, toHeight, provider) {
+                var filter = {address: clkAddress, topics: [[Win, Buy]]}
+                if(window.OnlyMyLottery) {
+                    const signer = provider.getSigner()
+                    var addr = await signer.getAddress()
+                    if(window.AddrForHistory) {
+                        addr = window.AddrForHistory
+                    }
+                    try {
+                        ethers.utils.getAddress(addr)
+                    } catch(e) {
+                        alert("Invalid Address: "+ addr)
+                        return
+                    }
+                    const signerAddr32 = ethers.utils.hexZeroPad(addr, 32)
+                    filter.topics.push(signerAddr32)
+                }
+                var logs = await this.getLogs(startHeight, toHeight, provider, filter, window.recCountLimit)
+                var hisTblHead = $("#hisTblHead")
+                var start = Math.max(logs.length-window.recCountLimit, 0)
+                for(var i=start; i<logs.length; i++) {
+                    var log = logs[i]
+                    const timestamp = ethers.BigNumber.from("0x"+log.data.substr(2+24+24))
+                    const timeStr = formatTime(1000*timestamp.toNumber())
+                    var html = `<tr><td>${timeStr}</td>`
+                    if(log.topics[0] == Win || log.topics[0] == Buy) {
+                        const amountBN = ethers.BigNumber.from(log.data.substr(0, 42))
+                        const amount  = ethers.utils.formatUnits(amountBN, CoinDecimal)*1.0
+                        const multiplierBN = ethers.BigNumber.from("0x"+log.data.substr(42, 8))
+                        const multiplier = ethers.utils.formatUnits(multiplierBN, 2)
+                        if(log.topics[0] == Win) {
+                            this.totalWon += amount
+                            if(amount >= this.totalCoins*0.01*0.5) {
+                                html += `<td class="neonText" style="font-weight: bold">+${amount}</td><td>${multiplier}</td>`
+                            } else {
+                                html += `<td style="color: green">+${amount}</td><td>${multiplier}</td>`
+                            }
+                        } else if(log.topics[0] == Buy) {
+                            this.totalBought += amount
+                            html += `<td style="color: red">-${amount}</td><td>${multiplier}</td>`
+                        }
+                    }
+                    html += `<td><a target="_blank" href="https://smartscan.cash/transaction/${log.transactionHash}">view</a></td></tr>`
+                    var logId = log.transactionHash+"-"+log.logIndex
+                    if(!this.logIdSet.has(logId)) {
+                        hisTblHead.after(html)
+                        this.logIdSet.add(logId)
+                    }
+                }
+                $("#totalBought").text(this.totalBought.toFixed(0))
+                $("#totalWon").text(this.totalWon.toFixed(0))
+                var roi = this.totalWon*100/this.totalBought
+                $("#roi").text(roi.toFixed(2))
+                if(window.OnlyMyLottery) {
+                    $("#roiInfo").show()
+                } else {
+                    $("#roiInfo").hide()
+                }
+            }
+
+            async showAndUpdateHistoryTable() {
+                clearInterval(window.tableUpdateInterval)
+                $("#historyTable").html(`<tr id="hisTblHead"><th>Time</th><th>Balance</th><th>Multiplier</th><th>txid</th></tr>`)
+                const provider = new ethers.providers.Web3Provider(window.ethereum)
+                window.latestHeight4HisTbl = await provider.getBlockNumber()
+                this.totalWon = 0
+                this.totalBought = 0
+                this.logIdSet = new Set()
+                await this.showHistoryTable(DefaultStartHeight, window.latestHeight4HisTbl, provider)
+                window.tableUpdateInterval = setInterval(async function() {
+                    var newHeight = await provider.getBlockNumber()
+                    if(window.latestHeight4HisTbl+1 <= newHeight) {
+                        await window.catsLuck.showHistoryTable(window.latestHeight4HisTbl+1, newHeight, provider)
+                    }
+                    window.latestHeight4HisTbl = newHeight
+                }, 10000)
+            }
+
+            async commentCatsLuck() {
+                var name = $("#nickName").val()
+                var txt = $("#yourComment").val()
+                if(!hasOnlyASCII(txt)) {
+                    $("#warnText").text(`Please use English text only.`)
+                    $("#warnDlg").dialog({modal: true, buttons: {Ok: function(){
+                                $(this).dialog("close")
+                            }}})
+                    return
+                }
+                const provider = new ethers.providers.Web3Provider(window.ethereum)
+                const signer = provider.getSigner()
+                const signerAddr = await signer.getAddress()
+                if(name.length != 0) {
+                    localStorage.setItem("NickName", name)
+                } else {
+                    name = "luckycat"
+                }
+                name = name+"(ID:"+ethers.BigNumber.from(signerAddr.substr(0, 8)).toNumber()+")"
+                var s = Math.floor(Date.now()/1000)
+                s = s+" "+name+"\n"+txt
+                const encoder = new TextEncoder()
+                const encData = encoder.encode(s)
+                var hex = ethers.utils.hexlify(encData).substr(2)
+                if(hex.length > 64*9) {
+                    $("#warnText").text(`Your text is too long, please make it shorter.`)
+                    $("#warnDlg").dialog({modal: true, buttons: {Ok: function(){
+                                $(this).dialog("close")
+                            }}})
+                    return
+                }
+                if(hex.length%64 != 0) {
+                    hex += "0".repeat(64-hex.length%64)
+                }
+                const commentContract = new ethers.Contract(commentAddress, CommentABI, provider).connect(signer)
+                const wordCount = hex.length/64
+                if(wordCount == 1) {
+                    await commentContract.comment1("0x"+hex.substr(0, 64), {gasPrice: DefaultGasPrice})
+                } else if(wordCount == 2) {
+                    await commentContract.comment2("0x"+hex.substr(0, 64), "0x"+hex.substr(64, 64), {gasPrice: DefaultGasPrice})
+                } else if(wordCount == 3) {
+                    await commentContract.comment3("0x"+hex.substr(0, 64), "0x"+hex.substr(64, 64), "0x"+hex.substr(128, 64), {gasPrice: DefaultGasPrice})
+                } else if(wordCount == 4) {
+                    await commentContract.comment4("0x"+hex.substr(0, 64), "0x"+hex.substr(64, 64), "0x"+hex.substr(128, 64), "0x"+hex.substr(192, 64), {gasPrice: DefaultGasPrice})
+                } else if(wordCount == 5) {
+                    await commentContract.comment5("0x"+hex.substr(0, 64), "0x"+hex.substr(64, 64), "0x"+hex.substr(128, 64), "0x"+hex.substr(192, 64), "0x"+hex.substr(256, 64), {gasPrice: DefaultGasPrice})
+                } else if(wordCount == 6) {
+                    await commentContract.comment6("0x"+hex.substr(0, 64), "0x"+hex.substr(64, 64), "0x"+hex.substr(128, 64), "0x"+hex.substr(192, 64), "0x"+hex.substr(256, 64), "0x"+hex.substr(320, 64), {gasPrice: DefaultGasPrice})
+                } else if(wordCount == 7) {
+                    await commentContract.comment7("0x"+hex.substr(0, 64), "0x"+hex.substr(64, 64), "0x"+hex.substr(128, 64), "0x"+hex.substr(192, 64), "0x"+hex.substr(256, 64), "0x"+hex.substr(320, 64), "0x"+hex.substr(384, 64), {gasPrice: DefaultGasPrice})
+                } else if(wordCount == 8) {
+                    await commentContract.comment8("0x"+hex.substr(0, 64), "0x"+hex.substr(64, 64), "0x"+hex.substr(128, 64), "0x"+hex.substr(192, 64), "0x"+hex.substr(256, 64), "0x"+hex.substr(320, 64), "0x"+hex.substr(384, 64), "0x"+hex.substr(448, 64), {gasPrice: DefaultGasPrice})
+                } else if(wordCount == 9) {
+                    await commentContract.comment9("0x"+hex.substr(0, 64), "0x"+hex.substr(64, 64), "0x"+hex.substr(128, 64), "0x"+hex.substr(192, 64), "0x"+hex.substr(256, 64), "0x"+hex.substr(320, 64), "0x"+hex.substr(384, 64), "0x"+hex.substr(448, 64), "0x"+hex.substr(512, 64), {gasPrice: DefaultGasPrice})
+                }
+            }
+
+        }
+
+        $(function() { //document.onload
+            $(document).tooltip();
+            $("#tabs").tabs();
+
+            window.catsLuck = new CatsLuck()
+
+            $("#filterMethod").selectmenu();
+
+            $("#filterMethod").on("selectmenuchange", function() {
+                var v = $(this).val()
+                if(v=="Lotteries of All Addresses") {
+                    window.OnlyMyLottery = false
+                    window.AddrForHistory = null
+                    $("#roiInfo").hide()
+                    $("#specifiedAddrP").hide()
+                    window.catsLuck.showAndUpdateHistoryTable()
+                } else if(v=="Lotteries of My Address") {
+                    window.OnlyMyLottery = true
+                    window.AddrForHistory = null
+                    $("#specifiedAddrP").hide()
+                    window.catsLuck.showAndUpdateHistoryTable()
+                } else if(v=="Lotteries of a Specified Address") {
+                    window.OnlyMyLottery = true
+                    $("#addrDlg").dialog({modal: true, buttons: {Ok: function(){
+                                window.AddrForHistory = $("#specifiedAddr").val().trim()
+                                $("#specifiedAddrSpan").text(window.AddrForHistory)
+                                $("#specifiedAddrP").show()
+                                $(this).dialog("close")
+                                window.catsLuck.showAndUpdateHistoryTable()
+                            }}})
+                }
+            });
+
+            $("#buyBtn").on("click", async function() {
+                await window.catsLuck.syncValues(false)
+                window.catsLuck.buy()
+            });
+
+            $("#withdrawBtn").on("click", function() {
+                window.catsLuck.withdrawCATS()
+            });
+            $("#depositBtn").on("click", function() {
+                window.catsLuck.depositCATS()
+            });
+
+            $("#refreshBtn").on("click", function() {
+                window.catsLuck.showAndUpdateHistoryTable()
+            });
+
+            window.recCountLimit = 200
+            var oldCountLimit = localStorage.getItem("recCountLimit")
+            if(oldCountLimit) {
+                window.recCountLimit = oldCountLimit
+                $("#recCountLimit").text(oldCountLimit)
+            }
+            $("#recCountBtn").on("click", function() {
+                var c = prompt("Please enter the upper limit of the shown records (20~200):", 200)
+                if(!(20<=c && c<=200)) {
+                    alert("Invalid Number: "+c)
+                    return
+                }
+                window.recCountLimit = c
+                localStorage.setItem("recCountLimit", c)
+                $("#recCountLimit").text(c)
+            });
+
+            $("#commentBtn").on("click", function() {
+                window.catsLuck.commentCatsLuck()
+            });
+
+            $("#poolHisBtn").on("click", async function() {
+                $(this).prop('disabled', true)
+                const provider = new ethers.providers.Web3Provider(window.ethereum)
+                const signer = provider.getSigner()
+                const signerAddr = await signer.getAddress()
+                const roContract = new ethers.Contract(clkAddress, ReadonlyABI, provider).connect(signer)
+                await window.catsLuck.getInfo(roContract, signerAddr)
+                await window.catsLuck.syncValues(false)
+
+                await window.catsLuck.showMyHistory()
+                $(this).prop('disabled', false)
+            });
+
+            $("#multiplier").on("input", async function() {
+                await window.catsLuck.syncValues(false)
+            });
+            $("#amount").on("input", async function() {
+                await window.catsLuck.syncValues(false)
+            });
+
+            window.catsLuck.init();
+            $("#gtrans").prop("src", "https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit2")
+        });
+    </script>
+</head>
+<body>
+<table style="margin: auto;"><tr>
+    <td><a href="/"><img style="height: 80px; width: auto;" src="/img/catsluck.jpg"/></a></td>
+    <td style="width: 55px"><img style="height: 65px; width: auto; position: relative; top: 0px; left: 0px" src="/img/CATS.png"/></td>
+</tr></table>
+
+<!-- GTranslate: https://gtranslate.io/ -->
+<a href="#" onclick="doGTranslate('en|en');return false;" title="English" class="gflag nturl" style="background-position:-0px -0px;"><img src="//gtranslate.net/flags/blank.png" height="16" width="16" alt="English" /></a><a href="#" onclick="doGTranslate('en|fr');return false;" title="French" class="gflag nturl" style="background-position:-200px -100px;"><img src="//gtranslate.net/flags/blank.png" height="16" width="16" alt="French" /></a><a href="#" onclick="doGTranslate('en|de');return false;" title="German" class="gflag nturl" style="background-position:-300px -100px;"><img src="//gtranslate.net/flags/blank.png" height="16" width="16" alt="German" /></a><a href="#" onclick="doGTranslate('en|it');return false;" title="Italian" class="gflag nturl" style="background-position:-600px -100px;"><img src="//gtranslate.net/flags/blank.png" height="16" width="16" alt="Italian" /></a><a href="#" onclick="doGTranslate('en|pt');return false;" title="Portuguese" class="gflag nturl" style="background-position:-300px -200px;"><img src="//gtranslate.net/flags/blank.png" height="16" width="16" alt="Portuguese" /></a><a href="#" onclick="doGTranslate('en|ru');return false;" title="Russian" class="gflag nturl" style="background-position:-500px -200px;"><img src="//gtranslate.net/flags/blank.png" height="16" width="16" alt="Russian" /></a><a href="#" onclick="doGTranslate('en|es');return false;" title="Spanish" class="gflag nturl" style="background-position:-600px -200px;"><img src="//gtranslate.net/flags/blank.png" height="16" width="16" alt="Spanish" /></a>
+<br /><div id="google_translate_element2"></div>
+<script type="text/javascript">
+    function googleTranslateElementInit2() {new google.translate.TranslateElement({pageLanguage: 'en',autoDisplay: false}, 'google_translate_element2');}
+</script>
+<script id="gtrans" type="text/javascript" ></script>
+<script type="text/javascript">
+    /* <![CDATA[ */
+    eval(function(p,a,c,k,e,r){e=function(c){return(c<a?'':e(parseInt(c/a)))+((c=c%a)>35?String.fromCharCode(c+29):c.toString(36))};if(!''.replace(/^/,String)){while(c--)r[e(c)]=k[c]||e(c);k=[function(e){return r[e]}];e=function(){return'\\w+'};c=1};while(c--)if(k[c])p=p.replace(new RegExp('\\b'+e(c)+'\\b','g'),k[c]);return p}('6 7(a,b){n{4(2.9){3 c=2.9("o");c.p(b,f,f);a.q(c)}g{3 c=2.r();a.s(\'t\'+b,c)}}u(e){}}6 h(a){4(a.8)a=a.8;4(a==\'\')v;3 b=a.w(\'|\')[1];3 c;3 d=2.x(\'y\');z(3 i=0;i<d.5;i++)4(d[i].A==\'B-C-D\')c=d[i];4(2.j(\'k\')==E||2.j(\'k\').l.5==0||c.5==0||c.l.5==0){F(6(){h(a)},G)}g{c.8=b;7(c,\'m\');7(c,\'m\')}}',43,43,'||document|var|if|length|function|GTranslateFireEvent|value|createEvent||||||true|else|doGTranslate||getElementById|google_translate_element2|innerHTML|change|try|HTMLEvents|initEvent|dispatchEvent|createEventObject|fireEvent|on|catch|return|split|getElementsByTagName|select|for|className|goog|te|combo|null|setTimeout|500'.split('|'),0,{}))
+    /* ]]> */
+</script>
+<div id="tabs">
+    <ul>
+        <li><a href="#buy">Buy</a></li>
+        <li><a href="#pool">Pool</a></li>
+        <li><a href="#faq">FAQ</a></li>
+        <li><a href="#comment">Comment</a></li>
+        <li><a href="javascript:" onclick="return goHome();"><img style="height: 15px; width: auto;" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiA/PjxzdmcgZW5hYmxlLWJhY2tncm91bmQ9Im5ldyAwIDAgMzIgMzIiIGlkPSJFZGl0YWJsZS1saW5lIiB2ZXJzaW9uPSIxLjEiIHZpZXdCb3g9IjAgMCAzMiAzMiIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayI+PHBhdGggZD0iICBNMjcsMjlINVYxN0gzLjIzNWMtMS4xMzgsMC0xLjY2OS0xLjQxOS0wLjgxMi0yLjE2OEwxNC4xMzEsMy43NDVjMS4wNDgtMC45OTMsMi42ODktMC45OTMsMy43MzcsMGwxMS43MDcsMTEuMDg3ICBDMzAuNDMzLDE1LjU4LDI5LjkwMiwxNywyOC43NjMsMTdIMjdWMjl6IiBmaWxsPSJub25lIiBpZD0iWE1MSURfMV8iIHN0cm9rZT0iIzAwMDAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2UtbWl0ZXJsaW1pdD0iMTAiIHN0cm9rZS13aWR0aD0iMiIvPjxwYXRoIGQ9IiAgTTIwLDI5aC04di02YzAtMi4yMDksMS43OTEtNCw0LTRoMGMyLjIwOSwwLDQsMS43OTEsNCw0VjI5eiIgZmlsbD0ibm9uZSIgaWQ9IlhNTElEXzJfIiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLW1pdGVybGltaXQ9IjEwIiBzdHJva2Utd2lkdGg9IjIiLz48L3N2Zz4=">&nbsp;Home</a></li>
+    </ul>
+    <div id="buy">
+        <p><label for="multiplier">Multiplier:</label>
+            <input id="multiplier" type="number" value="2" style="width: 60px"
+                   title="If you win this lottery, the coins paid by you will be multiplied by this value and returned to you.">&nbsp;(1.05~1000)</p>
+        <p>When the multiplier equals <span id="mulValue">2</span>, the maximum amount you can buy is <span id="maxAmount">--</span>, and your chance to win is <span id="chance">--</span>%.
+        <p><label for="amount">Amount:</label>
+            <input id="amount" value="1"
+                   title="How many $CATS do you want to paid for this lottery ticket?" style="width: 60px">
+            <span id="amountWarn" style="color:red"></span>
+        </p>
+        <p>The fee you paid for this lottery is <span id="feeAmount">0.01</span>$CATS. If you win, the reward is <span id="rewardAmount">--</span>$CATS.</p>
+        <button id="buyBtn" class="ui-button ui-widget ui-corner-all">Buy Lottery!</button>
+
+        <p id="clkMintHint" style="display: none;">After buying this lottery, you can get <span id="syncAmount">--</span> <a id="clkLink">CLK</a>. Please let your wallet <a href="javascript:" onclick="return window.catsLuck.watchCLK();">watch CLK</a>.</p>
+
+        <hr>
+        <p><select name="filterMethod" id="filterMethod">
+            <option selected="selected">Lotteries of All Addresses</option>
+            <option>Lotteries of My Address</option>
+            <option>Lotteries of a Specified Address</option>
+        </select></p>
+        <p><button id="recCountBtn" class="ui-button ui-widget ui-corner-all">Show at most <span id="recCountLimit">200</span> records.</button></p>
+        <p><button id="refreshBtn" class="ui-button ui-widget ui-corner-all"><img style="width: 15px; height: auto; vertical-align: sub" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiA/PjxzdmcgaGVpZ2h0PSIxNzkyIiB2aWV3Qm94PSIwIDAgMTc5MiAxNzkyIiB3aWR0aD0iMTc5MiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTYzOSAxMDU2cTAgNS0xIDctNjQgMjY4LTI2OCA0MzQuNXQtNDc4IDE2Ni41cS0xNDYgMC0yODIuNS01NXQtMjQzLjUtMTU3bC0xMjkgMTI5cS0xOSAxOS00NSAxOXQtNDUtMTktMTktNDV2LTQ0OHEwLTI2IDE5LTQ1dDQ1LTE5aDQ0OHEyNiAwIDQ1IDE5dDE5IDQ1LTE5IDQ1bC0xMzcgMTM3cTcxIDY2IDE2MSAxMDJ0MTg3IDM2cTEzNCAwIDI1MC02NXQxODYtMTc5cTExLTE3IDUzLTExNyA4LTIzIDMwLTIzaDE5MnExMyAwIDIyLjUgOS41dDkuNSAyMi41em0yNS04MDB2NDQ4cTAgMjYtMTkgNDV0LTQ1IDE5aC00NDhxLTI2IDAtNDUtMTl0LTE5LTQ1IDE5LTQ1bDEzOC0xMzhxLTE0OC0xMzctMzQ5LTEzNy0xMzQgMC0yNTAgNjV0LTE4NiAxNzlxLTExIDE3LTUzIDExNy04IDIzLTMwIDIzaC0xOTlxLTEzIDAtMjIuNS05LjV0LTkuNS0yMi41di03cTY1LTI2OCAyNzAtNDM0LjV0NDgwLTE2Ni41cTE0NiAwIDI4NCA1NS41dDI0NSAxNTYuNWwxMzAtMTI5cTE5LTE5IDQ1LTE5dDQ1IDE5IDE5IDQ1eiIvPjwvc3ZnPg==">&nbsp;Refresh</button></p>
+        <p id="specifiedAddrP" style="display: none">Addr: <span id="specifiedAddrSpan"></span></p>
+        <p id="roiInfo" style="display: none">Total Won / Total Bought = <span id="totalWon">--</span> / <span id="totalBought">--</span> = <span id="roi">--</span>%</p>
+        <table id="historyTable">
+        </table>
+    </div>
+
+    <div id="pool">
+        <p>Current address: <span id="signerAddr"></span></p>
+        <p>You can deposit $CATS into this lottery pool and earn fees. But if lottery buyers win their rewards, you will suffer some loss together with the pool.</p>
+        <p>Now the lottery pool has <span id="totalShare">--</span> shares and each share equals <span id="catsPerShare">--</span> $CATS (totally <span id="totalCoins"></span> $CATS). You have <span id="userShare">--</span> shares in the pool (equaling <span id="userCoins">--</span> $CATS).</p>
+        <p><button id="depositBtn" class="ui-button ui-widget ui-corner-all">Deposit</button>
+            <input id="depositAmount" value="1"
+                   title="How many $CATS do you want to deposit into this lottery pool?" style="width: 60px">$CATS</p>
+
+        <p><button id="withdrawBtn" class="ui-button ui-widget ui-corner-all">Withdraw</button>
+            <input id="withdrawAmount" value="1"
+                   title="How many $CATS do you want to withdraw from this lottery pool?" style="width: 60px">$CATS</p>
+
+        <p><button id="poolHisBtn" class="ui-button ui-widget ui-corner-all">Show My <span style="color: blue">Deposits(+)</span> and <span style="color: purple">Withdraws(-)</span></button></p>
+        <table id="poolTable" style="display: none">
+        </table>
+        <p id="totalEarningP" style="display: none">Your total earnings: <span id="totalEarning"></span> $CATS.</p>
+    </div>
+
+    <div id="comment">
+        <p><label for="nickName">Nick Name:</label>
+            <input id="nickName" type="text" style="width: 260px"></p>
+        <textarea id="yourComment" style="width: 350px; height: 100px" placeholder="Please write something to comment catsluck"></textarea>
+        <p><button id="commentBtn" class="ui-button ui-widget ui-corner-all">Comment</button></p>
+        <hr>
+        <div id="commentList"></div>
+    </div>
+
+    <div id="faq">
+        <p><b>Who's behind Catsluck?</b></p>
+        <p>We are supporters of <a target="_blank" href="https://cashcats.org">cashcats</a>. People often ask what can we do with $CATS? So catsluck was born. You can bet and invest with $CATS now, and do more things in the future.</p>
+        <p><b>What is CLK?</b></p>
+        <p>CLK's address: 0x659F04F36e90143fCaC202D4BC36C699C078fC98</p>
+        <p>CLK is catsluck's exclusive token. CLK does not set a fixed upper limit. Before <span id="mintEndTime" style="font-weight: bold"></span>, users will get 1 free CLK every time he bets 1 $CATS. After that, the total amount of CLK does not increase. Till now, totally <span id="clkSupply" style="font-weight: bold">--</span> CLK have been minted. Please let your wallet <a href="javascript:" onclick="return window.catsLuck.watchCLK();">watch CLK</a>.</p>
+        <p><b>Does the development team reserve CLK?</b></p>
+        <p>Not at all. Absolutely fair distribution.</p>
+        <p><b>Where to trade CLK?</b></p>
+        <p><a target="_blank" href="https://dex.benswap.cash/#/swap?outputCurrency=0x659F04F36e90143fCaC202D4BC36C699C078fC98&inputCurrency=0x265bD28d79400D55a1665707Fa14A72978FA6043">CLK/$CATS</a> trading pair on benswap.</p>
+        <p><b>What is house edge?</b></p>
+        <p>The house edge is 2%.</p>
+        <p>1% is allocated to reward pool and another 1% is used to buy back CLK in circulation. Currently, there have been <span id="buybackPoolTokenCount" style="font-weight: bold">--</span> $CATS accumulated for buyback, which equals about <span id="CLKcanBeBought" style="font-weight: bold">--</span> CLK. Anyone can <a href="javascript:" onclick="return window.catsLuck.buybackAndBurn();">send a transaction</a> to buy CLK with these $CATS and burn them. Till now, totally <span id="totalBurnt" style="font-weight: bold">--</span> CLK have been <a href="javascript:" onclick="return catsLuck.showBuybackHistory();">bought back and burnt</a>.</p>
+        <p><b>Future plans?</b></p>
+        <ol>
+            <li>Code Audit</li>
+            <li>Support other tokens, such as BCH and various stablecoins</li>
+            <li>Support DAO</li>
+            <li>Add the "bet on any event" function. For example, people can predict what the price of BTC is going to be a month from now? Who will win the next U.S. presidential election? Who won the World Cup final? All CLK holders can act as judges and vote with their CLK.</li>
+        </ol>
+        <p><b>Is it open source?</b></p>
+        <p>Yes. Check it here <a href="https://github.com/catsluck/catsluck">https://github.com/catsluck/catsluck</a>.</p>
+        <p><b>Where can I find help?</b></p>
+        <p>Some users set up these channels:</p>
+        <p><a target="_blank" href="https://t.me/catsluck_chinese">https://t.me/catsluck_chinese</a></p>
+        <p><a target="_blank" href="https://t.me/catsluck_english">https://t.me/catsluck_english</a></p>
+        <p>You can try to ask question there. But the lazy developers are not in them.</p>
+    </div>
+</div>
+
+<div id="pendingRewardDlg" title="Get Pending Reward" style="display: none">
+    <p>You have a pending reward of <b id="pendingRewardAmount"></b> $CATS. Please receive it!</p>
+</div>
+
+<div id="warnDlg" title="Warning!" style="display: none">
+    <p id="warnText"></p>
+</div>
+
+<script>
+    var dotCount = 0;
+    setInterval(function() {
+        dotCount = ++dotCount % 5;
+        $("#loading").text(Array(dotCount+1).join("."));
+    }, 500);
+</script>
+
+<div id="waitDlg" title="Please wait..." style="display: none">
+    <p>Processing your order.<br>Please wait&nbsp;<b id="loading"></b></p>
+</div>
+
+<div id="addrDlg" title="Specify an address" style="display: none">
+    <input id="specifiedAddr" type="text" style="width: 220px">
+</div>
+
+<div id="buybackHisDlg" title="Recent Buyback Records" style="display: none">
+    <p id="buybackHisDlgLoading">Loading data...<br>Please wait.</p>
+    <table id="buybackTbl">
+    </table>
+</div>
+
+<div id="noRewardDlg" title="☹️ &nbsp;No Reward&nbsp;☹️" style="display: none">
+    <p>Sorry, you get no reward in this lottery.</p>
+</div>
+
+<div id="yesRewardDlg" title="😁&nbsp;You get the Reward!&nbsp;😁" style="display: none">
+    <p>Congratulations! You get the reward! Please send a transaction to receive it, or you will lose your reward after 256 blocks.</p>
+</div>
+
+</body>
+</html>

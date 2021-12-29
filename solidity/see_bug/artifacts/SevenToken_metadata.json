@@ -1,0 +1,114 @@
+{
+	"compiler": {
+		"version": "0.4.10+commit.f0d539ae"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [
+			{
+				"constant": false,
+				"inputs": [
+					{
+						"name": "addr",
+						"type": "address"
+					}
+				],
+				"name": "balanceOf",
+				"outputs": [
+					{
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"payable": false,
+				"type": "function"
+			},
+			{
+				"constant": false,
+				"inputs": [],
+				"name": "balanceOf",
+				"outputs": [
+					{
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"payable": false,
+				"type": "function"
+			},
+			{
+				"constant": false,
+				"inputs": [],
+				"name": "deposit",
+				"outputs": [],
+				"payable": true,
+				"type": "function"
+			},
+			{
+				"constant": false,
+				"inputs": [
+					{
+						"name": "to",
+						"type": "address"
+					},
+					{
+						"name": "amount",
+						"type": "uint256"
+					}
+				],
+				"name": "withdraw",
+				"outputs": [],
+				"payable": false,
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"payable": false,
+				"type": "constructor"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": false,
+						"name": "",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"name": "withdrawLog",
+				"type": "event"
+			}
+		],
+		"devdoc": {
+			"methods": {}
+		},
+		"userdoc": {
+			"methods": {}
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"see_bug/re_entrancy.sol": "SevenToken"
+		},
+		"libraries": {},
+		"optimizer": {
+			"enabled": false,
+			"runs": 200
+		},
+		"remappings": []
+	},
+	"sources": {
+		"see_bug/re_entrancy.sol": {
+			"keccak256": "0xf050444e402e4076aaf052a8110a4e988af241039147e7f8399e0a7c65a369c1",
+			"urls": [
+				"bzzr://9337a7c8492a16f0b7153b2a3fc69653a96062f8afd37fd62c14121eccab822e"
+			]
+		}
+	},
+	"version": 1
+}
