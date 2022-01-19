@@ -7,3 +7,5 @@
 Go 的编译器在逻辑上可以被分成四个阶段：词法与语法分析、类型检查和 AST 转换、通用 SSA 生成和最后的机器代码生成
 
 go tool compile -S main.go 查看调用
+
+go tool compile -m main.go 逃逸分析

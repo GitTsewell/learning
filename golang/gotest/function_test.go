@@ -107,3 +107,22 @@ func TestCLK(t *testing.T) {
 	fmt.Println("clk eq cats : ", cats)
 	fmt.Println("total : ", cats+totalAmount)
 }
+
+type MyStruct struct {
+	i int
+}
+
+func myFunction(a MyStruct, b *MyStruct) {
+	a.i = 31
+	b.i = 41
+	fmt.Printf("in my_function - a=(%d, %p) b=(%v, %p)\n", a, &a, b, &b)
+}
+
+func TestStruct(t *testing.T) {
+	a := MyStruct{i: 30}
+	c := MyStruct{i: 40}
+	b := &c
+	fmt.Printf("before calling - a=(%d, %p) b=(%v, %p)\n", a, &a, b, &b)
+	myFunction(a, b)
+	fmt.Printf("after calling  - a=(%d, %p) b=(%v, %p) c=(%v, %p)\n", a, &a, b, &b, c, &c)
+}
