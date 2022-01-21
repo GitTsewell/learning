@@ -1,4 +1,4 @@
-package concurrent_programming
+package main
 
 import (
 	"context"

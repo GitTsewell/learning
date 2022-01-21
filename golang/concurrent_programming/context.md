@@ -16,6 +16,16 @@ type Context interface {
 
 每一个 context.Context 都会从最顶层的 Goroutine 一层一层传递到最下层。context.Context 可以在上层 Goroutine 执行出现错误时，将信号及时同步给下层。
 
+## 创建context
+1. context.Background() 是上下文的默认值，所有其他的上下文都应该从它衍生出来；
+2. context.TODO() 应该仅在不确定应该使用哪种上下文时使用；
+
+## 派生方法
+1. func WithCancel(parent Context) (ctx Context, cancel CancelFunc)
+2. func WithDeadline(parent Context, d time.Time) (Context, CancelFunc)
+3. func WithTimeout(parent Context, timeout time.Duration) (Context, CancelFunc)
+4. func WithValue(parent Context, key, val interface{}) Context
+
 ## 取消信号
 Go 语言中的 context.Context 的主要作用还是在多个 Goroutine 组成的树中同步取消信号以减少对资源的消耗和占用
 取消信号的实现其实很简单,以我们最常用的request timeout为例子.用结构体中的done() 利用这个channel传递信号,然后各个goroutine自己监听.在context
