@@ -173,5 +173,143 @@ func (rw *RWMutex) Unlock() {
 ```
 解锁的操作，会先调用 atomic.AddInt32(&rw.readerCount, rwmutexMaxReaders)  将恢复之前写入的负数，然后根据当前有多少个读操作在等待，循环唤醒
 
+# WaitGroup
+```
+type WaitGroup struct {
+	noCopy noCopy
+
+	// 64-bit value: high 32 bits are counter, low 32 bits are waiter count.
+	// 64-bit atomic operations require 64-bit alignment, but 32-bit
+	// compilers do not ensure it. So we allocate 12 bytes and then use
+	// the aligned 8 bytes in them as state, and the other 4 as storage
+	// for the sema.
+	state1 [3]uint32
+}
+```
+WaitGroup 结构十分简单，由 nocopy 和 state1 两个字段组成，其中 nocopy 是用来防止复制的
+```
+type noCopy struct{}
+
+// Lock is a no-op used by -copylocks checker from `go vet`.
+func (*noCopy) Lock()   {}
+func (*noCopy) Unlock() {}
+```
+sync.noCopy 是一个特殊的私有结构体，tools/go/analysis/passes/copylock 包中的分析器会在编译期间检查被拷贝的变量中是否包含 sync.noCopy 
+或者实现了 Lock 和 Unlock 方法，如果包含该结构体或者实现了对应的方法就会报出以下错误：
+
+state1 的设计非常巧妙，这是一个是十二字节的数据，这里面主要包含两大块，counter 占用了 8 字节用于计数，sema 占用 4 字节用做信号量
+
+## ADD
+Add 其实最主要的就是加上计数器的值
+```
+func (wg *WaitGroup) Add(delta int) {
+    // 先从 state 当中把数据和信号量取出来
+	statep, semap := wg.state()
+
+    // 在 waiter 上加上 delta 值
+	state := atomic.AddUint64(statep, uint64(delta)<<32)
+    // 取出当前的 counter
+	v := int32(state >> 32)
+    // 取出当前的 waiter，正在等待 goroutine 数量
+	w := uint32(state)
+
+    // counter 不能为负数
+	if v < 0 {
+		panic("sync: negative WaitGroup counter")
+	}
+
+    // 这里属于防御性编程
+    // w != 0 说明现在已经有 goroutine 在等待中，说明已经调用了 Wait() 方法
+    // 这时候 delta > 0 && v == int32(delta) 说明在调用了 Wait() 方法之后又想加入新的等待者
+    // 这种操作是不允许的
+	if w != 0 && delta > 0 && v == int32(delta) {
+		panic("sync: WaitGroup misuse: Add called concurrently with Wait")
+	}
+    // 如果当前没有人在等待就直接返回，并且 counter > 0
+	if v > 0 || w == 0 {
+		return
+	}
+
+    // 这里也是防御 主要避免并发调用 add 和 wait
+	if *statep != state {
+		panic("sync: WaitGroup misuse: Add called concurrently with Wait")
+	}
+
+	// 唤醒所有 waiter，看到这里就回答了上面的问题了
+	*statep = 0
+	for ; w != 0; w-- {
+		runtime_Semrelease(semap, false, 0)
+	}
+}
+``` 
+
+## Wait
+wait 主要就是等待其他的 goroutine 完事之后唤醒
+```
+func (wg *WaitGroup) Wait() {
+	// 先从 state 当中把数据和信号量的地址取出来
+    statep, semap := wg.state()
+
+	for {
+     	// 这里去除 counter 和 waiter 的数据
+		state := atomic.LoadUint64(statep)
+		v := int32(state >> 32)
+		w := uint32(state)
+
+        // counter = 0 说明没有在等的，直接返回就行
+        if v == 0 {
+			// Counter is 0, no need to wait.
+			return
+		}
+
+		// waiter + 1，调用一次就多一个等待者，然后休眠当前 goroutine 等待被唤醒
+		if atomic.CompareAndSwapUint64(statep, state, state+1) {
+			runtime_Semacquire(semap)
+			if *statep != 0 {
+				panic("sync: WaitGroup is reused before previous Wait has returned")
+			}
+			return
+		}
+	}
+}
+```
+## Done
+Done 只是 Add 的简单封装，所以实际上是可以通过一次加一个比较大的值减少调用，或者达到快速唤醒的目的。
+```
+func (wg *WaitGroup) Done() {
+	wg.Add(-1)
+}
+```
+
+# Sync.Once
+```
+type Once struct {
+	done uint32
+	m    Mutex
+}
+```
+done == 0 表示每执行过,m就是一个互斥锁
+
+## do()
+```
+func (o *Once) Do(f func()) {
+	if atomic.LoadUint32(&o.done) == 0 {
+		o.doSlow(f)
+	}
+}
+```
+如果done==0 代表没执行过,调用doSlow()
+```
+func (o *Once) doSlow(f func()) {
+	o.m.Lock()
+	defer o.m.Unlock()
+	if o.done == 0 {
+		defer atomic.StoreUint32(&o.done, 1)
+		f()
+	}
+}
+```
+doSlow 很简单就是先上锁 ,然后执行完f方法之后把done+1
+
 
 
