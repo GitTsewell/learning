@@ -2,8 +2,11 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"sync"
 	"testing"
+
+	"golang.org/x/sync/errgroup"
 )
 
 func TestSyncMutex(t *testing.T) {
@@ -78,4 +81,25 @@ func TestSyncOnce(t *testing.T) {
 	}
 
 	wg.Wait()
+}
+
+func TestErrGroup(t *testing.T) {
+	var g errgroup.Group
+	var urls = []string{
+		"http://www.golang.org/",
+		"http://www.google.com/",
+	}
+	for i := range urls {
+		url := urls[i]
+		g.Go(func() error {
+			resp, err := http.Get(url)
+			if err == nil {
+				_ = resp.Body.Close()
+			}
+			return err
+		})
+	}
+	if err := g.Wait(); err == nil {
+		fmt.Println("Successfully fetched all URLs.")
+	}
 }

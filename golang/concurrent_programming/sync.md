@@ -311,5 +311,169 @@ func (o *Once) doSlow(f func()) {
 ```
 doSlow 很简单就是先上锁 ,然后执行完f方法之后把done+1
 
+# errGroup
+```
+type Group struct {
+    // context 的 cancel 方法
+	cancel func()
+
+    // 复用 WaitGroup
+	wg sync.WaitGroup
+
+	// 用来保证只会接受一次错误
+	errOnce sync.Once
+    // 保存第一个返回的错误
+	err     error
+}
+```
+
+## withContext
+```
+func WithContext(ctx context.Context) (*Group, context.Context) {
+	ctx, cancel := context.WithCancel(ctx)
+	return &Group{cancel: cancel}, ctx
+}
+```
+WithContext  就是使用 WithCancel  创建一个可以取消的 context 将 cancel 赋值给 Group 保存起来，然后再将 context 返回回去
+
+## Go
+```
+func (g *Group) Go(f func() error) {
+	g.wg.Add(1)
+
+	go func() {
+		defer g.wg.Done()
+
+		if err := f(); err != nil {
+			g.errOnce.Do(func() {
+				g.err = err
+				if g.cancel != nil {
+					g.cancel()
+				}
+			})
+		}
+	}()
+}
+```
+Go  方法其实就类似于 go  关键字，会启动一个携程，然后利用 waitgroup  来控制是否结束，如果有一个非 nil  的 error 出现就会保存起来并且如果有 cancel
+就会调用 cancel  取消掉，使 ctx  返回
+
+## wait
+```
+func (g *Group) Wait() error {
+	g.wg.Wait()
+	if g.cancel != nil {
+		g.cancel()
+	}
+	return g.err
+}
+```
+Wait  方法其实就是调用 WaitGroup  等待，如果有 cancel  就调用一下
+
+# Semaphore
+golang 官方的带权重的信号量控制机制
+```
+type Weighted struct {
+    size    int64 // 设置一个最大权值
+    cur     int64 // 标识当前已被使用的资源数
+    mu      sync.Mutex // 提供临界区保护
+    waiters list.List // 阻塞等待的调用者列表
+}
+```
+
+这个结构体对外暴露四个方法
+1. golang/sync/semaphore.NewWeighted 用于创建新的信号量；
+2. golang/sync/semaphore.Weighted.Acquire 阻塞地获取指定权重的资源，如果当前没有空闲资源，会陷入休眠等待；
+3. golang/sync/semaphore.Weighted.TryAcquire 非阻塞地获取指定权重的资源，如果当前没有空闲资源，会直接返回 false；
+4. golang/sync/semaphore.Weighted.Release 用于释放指定权重的资源；
+
+其实原理很简单,首先根据size,和cur判断当前权重,Acquire 和 TryAcquire 获取权重资源就设计锁和cur的增加 ,acquire没获取到指定权重阻塞是加了一个channel,然后select监听等待
+在waiters列表里面 ,调用release释放的时候,在cur减去权重,在判断waiters里面是否有等待的,如果有调用close触发channel
+
+# singleflight
+这个库的主要作用就是将一组相同的请求合并成一个请求，实际上只会去请求一次，然后对所有的请求返回相同的结果。
+
+这个结构体对外暴露三个方法
+```
+type Group
+    // Do 执行函数, 对同一个 key 多次调用的时候，在第一次调用没有执行完的时候
+	// 只会执行一次 fn 其他的调用会阻塞住等待这次调用返回
+	// v, err 是传入的 fn 的返回值
+	// shared 表示是否真正执行了 fn 返回的结果，还是返回的共享的结果
+    func (g *Group) Do(key string, fn func() (interface{}, error)) (v interface{}, err error, shared bool)
+
+	// DoChan 和 Do 类似，只是 DoChan 返回一个 channel，也就是同步与异步的区别
+	func (g *Group) DoChan(key string, fn func() (interface{}, error)) <-chan Result
+
+    // Forget 用于通知 Group 删除某个 key 这样后面继续这个 key 的调用的时候就不会在阻塞等待了
+	func (g *Group) Forget(key string)
+```
+
+结构
+```
+type Group struct {
+	mu sync.Mutex       // protects m
+	m  map[string]*call // lazily initialized
+}
+
+type call struct {
+	wg sync.WaitGroup
+
+	// 函数的返回值，在 wg 返回前只会写入一次
+	val interface{}
+	err error
+
+	// 使用调用了 Forgot 方法
+	forgotten bool
+
+    // 统计调用次数以及返回的 channel
+	dups  int
+	chans []chan<- Result
+}
+```
+
+## Do
+```
+func (g *Group) Do(key string, fn func() (interface{}, error)) (v interface{}, err error, shared bool) {
+	g.mu.Lock()
+
+    // 前面提到的懒加载
+    if g.m == nil {
+		g.m = make(map[string]*call)
+	}
+
+    // 会先去看 key 是否已经存在
+	if c, ok := g.m[key]; ok {
+       	// 如果存在就会解锁
+		c.dups++
+		g.mu.Unlock()
+
+        // 然后等待 WaitGroup 执行完毕，只要一执行完，所有的 wait 都会被唤醒
+		c.wg.Wait()
+
+        // 这里区分 panic 错误和 runtime 的错误，避免出现死锁，后面可以看到为什么这么做
+		if e, ok := c.err.(*panicError); ok {
+			panic(e)
+		} else if c.err == errGoexit {
+			runtime.Goexit()
+		}
+		return c.val, c.err, true
+	}
+
+    // 如果我们没有找到这个 key 就 new call
+	c := new(call)
+
+    // 然后调用 waitgroup 这里只有第一次调用会 add 1，其他的都会调用 wait 阻塞掉
+    // 所以这要这次调用返回，所有阻塞的调用都会被唤醒
+	c.wg.Add(1)
+	g.m[key] = c
+	g.mu.Unlock()
+
+    // 然后我们调用 doCall 去执行
+	g.doCall(c, key, fn)
+	return c.val, c.err, c.dups > 0
+}
+```
+原理很简单,先加锁,然后判断key是否在map中有值,如果有就waitGroup等待执行,如果没有就add(1)阻塞执行,最后解锁,然后调用call()
 
 
