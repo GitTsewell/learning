@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"sync"
 	"testing"
 	"unsafe"
 )
@@ -33,4 +34,10 @@ func TestMapValue(t *testing.T) {
 	m["people2"] = Student{name: "pp"}
 	c := m["people"]
 	fmt.Println(c)
+}
+
+func TestSyncMap(t *testing.T) {
+	m := sync.Map{}
+	m.Store(1, 1)
+	m.Load(1)
 }

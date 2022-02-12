@@ -346,3 +346,7 @@ runtime.evacuate 会将一个旧桶中的数据分流到两个新桶，所以它
 ## 删除
 哈希表的删除逻辑与写入逻辑很相似，只是触发哈希的删除需要使用关键字，如果在删除期间遇到了哈希表的扩容，就会分流桶中的元素，分流结束之后会找到桶中的目标元素完成键值对的删除工作
 
+## 一些阅读链接
+
+* [golang中map并发读写问题及解决方法](https://blog.csdn.net/skh2015java/article/details/60334091)
+* [Go语言——sync.Map详解](https://www.jianshu.com/p/241e7b911591)
