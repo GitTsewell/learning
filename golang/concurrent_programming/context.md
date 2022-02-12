@@ -1,3 +1,5 @@
+* [小白也能看懂的context包详解](https://segmentfault.com/a/1190000040917752)
+
 # context
 context.Context 是 Go 语言在 1.7 版本中引入标准库的接口1，该接口定义了四个需要实现的方法，其中包括：
 1. 返回 context.Context 被取消的时间，也就是完成工作的截止日期；
@@ -46,3 +48,8 @@ func (c *valueCtx) Value(key interface{}) interface{} {
 }
 ```
 context中的值传递很简单粗暴,找不到对应key就递归找上级,设计的很不好,少用
+
+### 用处
+1. 超时控制
+2. 取消控制
+3. 值传递,比如trace_id追踪

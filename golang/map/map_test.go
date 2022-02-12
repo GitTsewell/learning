@@ -14,7 +14,7 @@ func TestMapRead(t *testing.T) {
 	for i := 2; i < 1000; i++ {
 		m[i] = i
 	}
-	
+
 	m1 := m[1]
 	fmt.Println(m1)
 }
@@ -22,4 +22,15 @@ func TestMapRead(t *testing.T) {
 func TestName(t *testing.T) {
 	k := 1
 	fmt.Println(unsafe.Pointer(&k))
+}
+
+type Student struct {
+	name string
+}
+
+func TestMapValue(t *testing.T) {
+	m := map[string]Student{"people": {"zhoujielun"}}
+	m["people2"] = Student{name: "pp"}
+	c := m["people"]
+	fmt.Println(c)
 }
