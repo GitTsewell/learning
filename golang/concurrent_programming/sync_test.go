@@ -103,3 +103,7 @@ func TestErrGroup(t *testing.T) {
 		fmt.Println("Successfully fetched all URLs.")
 	}
 }
+
+func TestSyncPool(t *testing.T) {
+	//pool := sync.Pool{}
+}
