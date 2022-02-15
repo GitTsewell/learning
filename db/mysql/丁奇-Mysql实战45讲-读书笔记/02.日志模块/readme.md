@@ -26,7 +26,7 @@ InnoDB 有一个后台线程，每隔 1 秒，就会把 redo log buffer 中的�
 
 Mysql 默认是设置是1,也就是直接把redo log 持久化到磁盘
 
-### 2.2 big log (重要的日志模块)
+### 2.2 bin log (重要的日志模块)
 前面我们讲过,MySQL整体来看,其实就有两块:一块是Server层,它主要做的是MySQL功能
 层面的事情;还有一块是引擎层,负责存储相关的具体事宜。上面我们聊到的粉板redo log是
 InnoDB引擎特有的日志,而Server层也有自己的日志,称为binlog(归档日志)。
