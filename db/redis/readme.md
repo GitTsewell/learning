@@ -13,6 +13,7 @@
 
 ## 好文链接
 + [阿里官方redis开发规范](https://xie.infoq.cn/article/0ca2a460a49329fd4d2a0d1c1)
++ [Redis专题：万字长文详解持久化原理](https://segmentfault.com/a/1190000039208726)
 
 <!-- markdown-toc end -->
 
