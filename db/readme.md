@@ -13,3 +13,22 @@
 
 * [用Go轻松完成一个TCC分布式事务，保姆级教程](https://segmentfault.com/a/1190000040331793)
 * [golang 分布式框架DTM](https://github.com/dtm-labs/dtm)
+
+### 本地消息表和MQ事务
+![本地消息表](./message_save_db.png)
+
+MQ事务原理和本地消息表差不多,只是把这个确认过程放在了MQ中.目前RocketMQ 和 ActiveMQ都支持事务
+
+* [分布式事务的4种模式](https://zhuanlan.zhihu.com/p/78599954)
+
+### saga模式
+![saga](./saga.jpg)
+
+### 最大努力通知
+* [最大努力通知](https://dtm.pub/practice/other.html#%E6%9C%80%E5%A4%A7%E5%8A%AA%E5%8A%9B%E9%80%9A%E7%9F%A5)
+
+### AT事务模式
+* [AT事务模式](https://dtm.pub/practice/other.html#at%E4%BA%8B%E5%8A%A1%E6%A8%A1%E5%BC%8F)
+
+AT模式本质捕获你的执行SQL 保存一份这个sql语句影响的数据在执行sql之前的image ,然后再保存一份执行之后的image,对比两个数据,
+如果两个数据不一致,说明成功了,如果两个数据一致,说明失败,回滚到之前的before image
