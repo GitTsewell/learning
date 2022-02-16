@@ -2,3 +2,7 @@
 * [再有人问你分布式事务，把这篇扔给他](https://juejin.cn/post/6844903647197806605#heading-15)
 * [CAP理论和Base理论](https://zhuanlan.zhihu.com/p/335617791)
 * [MySQL对分布式事务（XA Transactions）的支持](http://www.asktheway.org/2020/04/26/266/)
+
+### 2pac XA 一句话总结
++ 优点: 强一致性,实现简单
++ 缺点: 1.协调者单点故障  2.阻塞
