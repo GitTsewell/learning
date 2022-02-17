@@ -6,6 +6,9 @@ type Mutex struct {
 }
 ```
 
+![sema](./sync_sema.png)
+
+在默认情况下，互斥锁的所有状态位都是 0，int32 中的不同位分别表示了不同的状态：
 互斥锁的状态
 + mutexLocked — 表示互斥锁的锁定状态
 + mutexWoken — 表示从正常模式被从唤醒
