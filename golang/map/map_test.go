@@ -39,5 +39,23 @@ func TestMapValue(t *testing.T) {
 func TestSyncMap(t *testing.T) {
 	m := sync.Map{}
 	m.Store(1, 1)
+	m.Store(2, 2)
 	m.Load(1)
+	m.Load(2)
+	m.Store(3, 3)
+	m.Store(4, 4)
+	m.Load(3)
+}
+
+func TestMapAdress(t *testing.T) {
+	m1 := map[int]int{1: 1}
+	m2 := m1
+
+	fmt.Printf("m1 address : %p,m2 address : %p\n", m1, m2)
+
+	for i := 10; i <= 10000; i++ {
+		m1[i] = i
+	}
+
+	fmt.Printf("m1 address : %p,m2 address : %p\n", m1, m2)
 }

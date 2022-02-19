@@ -24,3 +24,14 @@ func TestNilChannel(t *testing.T) {
 
 	time.Sleep(1 * time.Second)
 }
+
+func TestChannelBuffer(t *testing.T) {
+	ch := make(chan int, 5)
+
+	for i := 1; i <= 10; i++ {
+		fmt.Println(i)
+		ch <- i
+	}
+
+	fmt.Println(<-ch)
+}

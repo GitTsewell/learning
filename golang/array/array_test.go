@@ -106,3 +106,18 @@ func TestSliceCopy(t *testing.T) {
 	fmt.Println(c, d)
 	fmt.Printf("c addres is %p , d address is %p \n", &c[0], &d[0])
 }
+
+func TestSliceAdd(t *testing.T) {
+	a := []int{0}
+	b := a
+
+	fmt.Printf("a address : %p,b address : %p\n", a, b)
+
+	a = append(a, 1)
+	a = append(a, 2)
+	a = append(a, 3)
+	a = append(a, 4)
+
+	fmt.Printf("a address : %p,b address : %p\n", a, b)
+
+}

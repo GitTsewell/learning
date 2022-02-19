@@ -104,6 +104,36 @@ func TestErrGroup(t *testing.T) {
 	}
 }
 
+type Person struct {
+	Name string
+	Age  int
+}
+
+func initPool() *sync.Pool {
+	return &sync.Pool{
+		New: func() interface{} {
+			fmt.Println("创建一个 person.")
+			return &Person{}
+		},
+	}
+}
+
 func TestSyncPool(t *testing.T) {
-	//pool := sync.Pool{}
+	pool := initPool()
+	person := pool.Get().(*Person)
+	fmt.Println("首次从sync.Pool中获取person：", person)
+	person.Name = "Jack"
+	person.Age = 23
+	pool.Put(person)
+	pool.Put(person)
+	pool.Put(person)
+	pool.Put(person)
+	pool.Put(person)
+	pool.Put(person)
+	pool.Put(person)
+	pool.Put(person)
+	fmt.Println("设置的对象Name: ", person.Name)
+	fmt.Println("设置的对象Age: ", person.Age)
+	fmt.Println("Pool 中有一个对象，调用Get方法获取：", pool.Get().(*Person))
+	fmt.Println("Pool 中没有对象了，再次调用Get方法：", pool.Get().(*Person))
 }

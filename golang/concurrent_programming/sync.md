@@ -479,4 +479,36 @@ func (g *Group) Do(key string, fn func() (interface{}, error)) (v interface{}, e
 ```
 原理很简单,先加锁,然后判断key是否在map中有值,如果有就waitGroup等待执行,如果没有就add(1)阻塞执行,最后解锁,然后调用call()
 
+# sync map
+结构模型
+```
+type Map struct {
+    mu Mutex
+    read atomic.Value // readOnly
+    dirty map[interface{}]*entry
+    misses int
+}
+```
+```
+type readOnly struct {
+	m       map[interface{}]*entry
+	amended bool // true if the dirty map contains some key not in m.
+}
+```
+
+两个map,优先存dirty中,触发一定条件后刷进read中
+
+每次操作dirty都有mutex锁
+
+![sync_map](./sync_map.png)
+
+流程概述:
+1. 读的时候先去readonly里面找,找不到就判断amended,如果为true,说明dirty里面可能有,就去dirty里面找,然后....
+2. 写的时候先判断readonly是否有,有直接更新,没有就去dirty里面新建一个
+3. 相信流程看下面文章链接
+
+! [年度最佳【golang】sync.Map详解](https://segmentfault.com/a/1190000023879083#item-4-2)
+
+# sync pool
+! [年度最佳【golang】sync.Pool详解](https://segmentfault.com/a/1190000023878185)
 
