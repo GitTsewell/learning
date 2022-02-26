@@ -63,7 +63,7 @@ func TestDoublePoint(t *testing.T) {
 }
 
 // 快速排序
-// 时间复杂度 O(n*log n)  最坏情况O(n^2)
+// 时间复杂度 O(n*log n)  最坏情况O(n^2)  空间复杂度O(logN) 不稳定
 // 步骤,选一个数(数组最后一个)做基准,然后小于等于这个数的放左边,大于这个数的放右边,然后继续递归左边和右边的直到剧本序列<=2
 // 步骤,数组最后一个数做target,arr[i]<=target放point左边 然后point++ i++,arr[i]>point 放右边 i++,最后吧最后一个数和point数做交换,
 // 然后把 小于point的 和 大于point的再继续
