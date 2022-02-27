@@ -6,10 +6,6 @@ type Node struct {
 	Next  *Node
 }
 
-func signalListInit() *Node {
-	return &Node{}
-}
-
 func (n *Node) add(v interface{}) {
 	if n == nil {
 		return
@@ -30,11 +26,6 @@ type TwoWayNode struct {
 	Value interface{}
 	Prev  *TwoWayNode
 	Next  *TwoWayNode
-}
-
-func TwoWayNodeInit() *TwoWayNode {
-	// sds
-	return &TwoWayNode{}
 }
 
 func (t *TwoWayNode) add(v interface{}) {

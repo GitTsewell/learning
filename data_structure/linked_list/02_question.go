@@ -74,3 +74,33 @@ func LinkedListPub(list1, list2 *Node) (data []interface{}) {
 
 	return
 }
+
+// 判断一个链表是否会回文结构,回文结构 1->2->3->2->1  or  1->20->8->8->20->1 要求时间复杂度O(n)
+// 思路:1 链表反转 然后比较遍历 比较是否一致
+// 2. 使用栈结构,依次入栈,然后遍历和出栈结构比较,和链表反转思路类型,不过这里把这个反转链表的结果变成了一个栈结构,利用栈后进先出的特点,让首位比较
+// 3. 优化栈结构,只使用后半部分入栈,然后和前半部分去比较,可以节约N/2 空间,然后这个方法的问题就是如果找到中心对称点的问题,可以使用快慢指针,当快指针
+// 走完的时候,慢指针就是指向的中心对称点,还要判断奇数偶数的问题,如果是基数是刚好有一个中心对称点的,如果是偶数,慢指针停在中心对称右边或右边一个数,可以自己控制
+
+func ListPalindromeV1(head *Node) bool {
+	if head == nil {
+		return false
+	}
+
+	if head.Next == nil {
+		return true
+	}
+
+	node := *head
+	reverseNode := nodeReverse(&node)
+
+	for head.Next != nil && reverseNode.Next != nil {
+		if head.Value != reverseNode.Value {
+			return false
+		}
+
+		head = head.Next
+		reverseNode = reverseNode.Next
+	}
+
+	return true
+}

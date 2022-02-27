@@ -6,8 +6,7 @@ import (
 )
 
 func TestNodeReverse(t *testing.T) {
-	list := signalListInit()
-	list.add(1)
+	list := &Node{Value: 1}
 	list.add(2)
 	list.add(3)
 
@@ -16,7 +15,7 @@ func TestNodeReverse(t *testing.T) {
 }
 
 func TestTwoWayNodeReverse(t *testing.T) {
-	list := TwoWayNodeInit()
+	list := &TwoWayNode{Value: 1}
 	list.add(2)
 	list.add(3)
 	list.add(4)
@@ -26,15 +25,13 @@ func TestTwoWayNodeReverse(t *testing.T) {
 }
 
 func TestLinkedListPub(t *testing.T) {
-	list1 := signalListInit()
-	list1.add(1)
+	list1 := &Node{Value: 1}
 	list1.add(3)
 	list1.add(5)
 	list1.add(7)
 	list1.add(9)
 
-	list2 := signalListInit()
-	list2.add(2)
+	list2 := &Node{Value: 2}
 	list2.add(3)
 	list2.add(4)
 	list2.add(5)
@@ -43,4 +40,27 @@ func TestLinkedListPub(t *testing.T) {
 
 	pub := LinkedListPub(list1, list2)
 	fmt.Println(pub)
+}
+
+func TestListPalindromeV1(t *testing.T) {
+	list1 := &Node{Value: 1}
+	list1.add(3)
+	list1.add(5)
+	list1.add(7)
+	list1.add(9)
+
+	fmt.Println(ListPalindromeV1(list1))
+
+	list2 := &Node{Value: 1}
+	list2.add(3)
+	list2.add(5)
+	list2.add(3)
+	list2.add(1)
+	fmt.Println(ListPalindromeV1(list2))
+
+	list3 := &Node{Value: 20}
+	list3.add(4)
+	list3.add(4)
+	list3.add(20)
+	fmt.Println(ListPalindromeV1(list3))
 }
