@@ -1,5 +1,9 @@
 package linked_list
 
+import (
+	"learning/data_structure/stack"
+)
+
 // 单向链表反转
 // A->B->C->D
 // 先用一个临时变量把(B->C->D)保存下来
@@ -103,4 +107,183 @@ func ListPalindromeV1(head *Node) bool {
 	}
 
 	return true
+}
+
+func ListPalindromeV2(head *Node) bool {
+	if head == nil {
+		return false
+	}
+
+	if head.Next == nil {
+		return true
+	}
+
+	stacks := stack.StackInit()
+	node := head
+
+	for head != nil {
+		stacks.Push(head.Value)
+		head = head.Next
+	}
+
+	head = node
+	for head != nil {
+		if stacks.Pop().(int) != head.Value.(int) {
+			return false
+		}
+		head = head.Next
+	}
+
+	return true
+}
+
+func ListPalindromeV3(head *Node) bool {
+	if head == nil {
+		return false
+	}
+
+	if head.Next == nil {
+		return true
+	}
+
+	// 如果 快指针 head.next.next == nil  那说明是一个偶数,我们让慢指针停在中心对称点的下一个  比如 1->2->3->3->2->1 让慢指针停在第二个3
+	fast := head
+	flow := head
+
+	for fast.Next != nil {
+		flow = flow.Next
+		if fast.Next.Next == nil {
+			fast = fast.Next
+			break
+		}
+		fast = fast.Next.Next
+	}
+
+	stacks := stack.StackInit()
+	for flow != nil {
+		stacks.Push(flow.Value)
+		flow = flow.Next
+	}
+
+	for data := stacks.Pop(); data != nil; data = stacks.Pop() {
+		if data.(int) != head.Value.(int) {
+			return false
+		}
+		head = head.Next
+	}
+	return true
+}
+
+// 将单向链表划分成左边小,中间等于,右边大于的形式,要求O(n) 并且保持之前链表的稳定性
+// 思路:1.用一个[]*node的数组,做partition,然后再重新组装成一个链表
+// 2 不用额外的数据结构,用六个变量 分别指向 小于头,尾  等于头尾  大于头尾 然后连起来
+
+func ListPartitionV1(head *Node, k int) *Node {
+	if head == nil {
+		return nil
+	}
+
+	if head.Next == nil {
+		return head
+	}
+
+	var s []*Node
+	for head != nil {
+		s = append(s, head)
+		head = head.Next
+	}
+
+	l := 0
+	r := len(s) - 1
+
+	for i := 0; i < r; {
+		if s[i].Value.(int) < k {
+			s[i], s[l] = s[l], s[i]
+			l++
+			i++
+		} else if s[i].Value.(int) == k {
+			i++
+		} else {
+			s[i], s[r] = s[r], s[i]
+			r--
+		}
+	}
+
+	newHead := s[0]
+	for i, _ := range s {
+		if i > 0 {
+			s[i-1].Next = s[i]
+		}
+	}
+	return newHead
+}
+
+func ListPartitionV2(head *Node, k int) *Node {
+	if head == nil {
+		return nil
+	}
+
+	if head.Next == nil {
+		return head
+	}
+
+	var lessHead *Node
+	var lessTail *Node
+	var eqHead *Node
+	var eqTail *Node
+	var gatherHead *Node
+	var gatherTail *Node
+
+	for head != nil {
+		if head.Value.(int) < k {
+			if lessHead == nil {
+				lessHead = head
+				lessTail = head
+			} else {
+				lessTail.Next = head
+				lessTail = lessHead.Next
+			}
+		} else if head.Value.(int) == k {
+			if eqHead == nil {
+				eqHead = head
+				eqTail = head
+			} else {
+				eqTail.Next = head
+				eqTail = eqTail.Next
+			}
+		} else {
+			if gatherHead == nil {
+				gatherHead = head
+				gatherTail = head
+			} else {
+				gatherTail.Next = head
+				gatherTail = gatherTail.Next
+			}
+		}
+		head = head.Next
+	}
+
+	// merge list
+	var newNode *Node
+
+	if lessHead != nil {
+		newNode = lessHead
+		if eqHead != nil {
+			lessTail.Next = eqHead
+			if gatherHead != nil {
+				eqTail.Next = gatherHead
+			}
+		} else if gatherHead != nil {
+			lessTail.Next = gatherHead
+		}
+	} else if eqHead != nil {
+		newNode = eqHead
+		if gatherHead != nil {
+			eqTail.Next = gatherHead
+		}
+	} else {
+		newNode = gatherHead
+	}
+
+	return newNode
 }
