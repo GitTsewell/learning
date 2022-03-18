@@ -37,6 +37,7 @@ require (
 	github.com/klauspost/compress v1.10.10 // indirect
 	github.com/linkedin/goavro v2.1.0+incompatible
 	github.com/mattn/go-colorable v0.1.8 // indirect
+	github.com/mattn/go-sqlite3 v1.14.12 // indirect
 	github.com/microcosm-cc/bluemonday v1.0.2 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
@@ -58,5 +59,7 @@ require (
 	google.golang.org/grpc v1.29.1
 	google.golang.org/protobuf v1.25.0 // indirect
 	gopkg.in/linkedin/goavro.v1 v1.0.5 // indirect
+	gorm.io/driver/sqlite v1.3.1 // indirect
+	gorm.io/gorm v1.23.2 // indirect
 	moul.io/http2curl v1.0.0 // indirect
 )

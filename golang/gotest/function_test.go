@@ -126,3 +126,8 @@ func TestStruct(t *testing.T) {
 	myFunction(a, b)
 	fmt.Printf("after calling  - a=(%d, %p) b=(%v, %p) c=(%v, %p)\n", a, &a, b, &b, c, &c)
 }
+
+func TestBinary(t *testing.T) {
+	var i int8 = -4
+	fmt.Printf("%b\n", i)
+}
